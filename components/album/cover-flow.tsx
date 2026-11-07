@@ -32,6 +32,7 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
 
   const stageRef = useRef<HTMLDivElement | null>(null);
   const pointerStart = useRef<number | null>(null);
+  const dragXRef = useRef(0);
   const suppressClick = useRef(false);
   const wheelLock = useRef(0);
 
@@ -91,32 +92,51 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     pointerStart.current = event.clientX;
     suppressClick.current = false;
+    dragXRef.current = 0;
     setDragging(true);
-    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
+    // 不做 setPointerCapture：它会把后续 pointerup 重定向到舞台，
+    // 导致 click 不落在卡片上，点击忽灵忽不灵。改用 window 级监听。
   };
 
-  const onPointerMove = (event: React.PointerEvent) => {
-    if (pointerStart.current === null) return;
-    const delta = event.clientX - pointerStart.current;
-    if (Math.abs(delta) > 6) suppressClick.current = true;
-    setDragX(delta);
-  };
+  // 拖拽在 window 上监听，指针移出舞台也不会丢
+  useEffect(() => {
+    if (!dragging) return;
 
-  const finishDrag = () => {
-    if (pointerStart.current === null) return;
-    const distance = dragX;
-    pointerStart.current = null;
-    setDragging(false);
-    setDragX(0);
-    if (distance <= -cardSize * SNAP_RATIO) go(1);
-    else if (distance >= cardSize * SNAP_RATIO) go(-1);
-  };
+    const onMove = (event: PointerEvent) => {
+      if (pointerStart.current === null) return;
+      const delta = event.clientX - pointerStart.current;
+      if (Math.abs(delta) > 6) suppressClick.current = true;
+      dragXRef.current = delta;
+      setDragX(delta);
+    };
+
+    const onUp = () => {
+      const distance = dragXRef.current;
+      pointerStart.current = null;
+      dragXRef.current = 0;
+      setDragging(false);
+      setDragX(0);
+      if (distance <= -cardSize * SNAP_RATIO) go(1);
+      else if (distance >= cardSize * SNAP_RATIO) go(-1);
+    };
+
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+    window.addEventListener('pointercancel', onUp);
+    return () => {
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onUp);
+    };
+  }, [dragging, cardSize, go]);
 
   const handleCardClick = (index: number) => {
+    // 拖拽结束时浏览器仍会补发一次 click，这里吞掉
     if (suppressClick.current) {
       suppressClick.current = false;
       return;
     }
+    // 点当前卡片 → 进入专辑详情；点其他卡片 → 该卡片成为当前展示
     if (index === active) router.push(`/albums/${albums[index].id}`);
     else setActive(index);
   };
@@ -145,9 +165,6 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
         className="coverflow-stage"
         style={{ height: stageHeight }}
         onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={finishDrag}
-        onPointerCancel={finishDrag}
         role="group"
         aria-roledescription="carousel"
         aria-label="专辑滑动展示"
