@@ -478,6 +478,16 @@ input[type='range'].range-thin::-moz-range-thumb {
   height: 100%;
   font-size: calc(var(--card, 300px) * 0.0333);
   transform-style: preserve-3d;
+  /* .sleeve 在 preserve-3d 容器里位于 z=0，内胆在 translateZ(-2px)。
+     合成器（真实点击/拖拽）会把 .sleeve 判为更靠前，于是点唱片、唱臂、
+     进度条全被它吃掉；让容器自身不参与命中，交给子层。 */
+  pointer-events: none;
+}
+
+/* 封皮和内胆各自接管自己区域内的命中 */
+.sleeve-flap,
+.sleeve-interior {
+  pointer-events: auto;
 }
 
 /* ---------- 内胆：黑盒子 ---------- */

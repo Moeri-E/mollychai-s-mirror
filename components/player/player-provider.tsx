@@ -29,6 +29,8 @@ type PlayerState = {
 
 type PlayerActions = {
   playTrack: (track: Track, queue?: Track[]) => void;
+  /** 只载入、不出声：翻开专辑时唱机停在待播放状态 */
+  cueTrack: (track: Track, queue?: Track[]) => void;
   toggle: () => void;
   pause: () => void;
   next: () => void;
@@ -106,7 +108,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     return list[nextIndex] ?? null;
   }, []);
 
-  const startTrack = useCallback((track: Track) => {
+  const startTrack = useCallback((track: Track, autoplay = true) => {
     const audio = audioRef.current;
     if (!audio) return;
     setCurrent(track);
@@ -115,6 +117,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setCurrentTime(0);
     audio.src = streamUrlFor(track.id);
     audio.load();
+    if (!autoplay) {
+      audio.pause();
+      setDuration(track.duration ?? 0);
+      return;
+    }
     const promise = audio.play();
     if (promise) {
       promise.catch(() => {
@@ -206,6 +213,30 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     [startTrack],
   );
 
+  /**
+   * 载入但不播放。翻开封套时用它：唱机出现的那一刻是静止的，
+   * 用户点唱片或唱臂才开始出声。
+   *
+   * 如果当前曲目本来就在这张专辑里（收起后再翻开），保留曲目和进度，
+   * 只把声音停掉——否则每次翻开都会跳回第一首。
+   */
+  const cueTrack = useCallback(
+    (track: Track, nextQueue?: Track[]) => {
+      if (nextQueue) {
+        setQueue(nextQueue);
+        queueRef.current = nextQueue;
+      }
+      const cur = currentRef.current;
+      if (cur && nextQueue?.some((item) => item.id === cur.id)) {
+        const audio = audioRef.current;
+        if (audio && !audio.paused) audio.pause();
+        return;
+      }
+      startTrack(track, false);
+    },
+    [startTrack],
+  );
+
   const toggle = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -230,9 +261,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     audio.pause();
   }, []);
 
+  // 换曲跟随当前的播放/暂停状态：暂停时换曲依然不出声
   const next = useCallback(() => {
+    const audio = audioRef.current;
     const track = pickNext(1, true);
-    if (track) startTrack(track);
+    if (track) startTrack(track, audio ? !audio.paused : true);
   }, [pickNext, startTrack]);
 
   const prev = useCallback(() => {
@@ -243,7 +276,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const track = pickNext(-1, true);
-    if (track) startTrack(track);
+    if (track) startTrack(track, audio ? !audio.paused : true);
   }, [pickNext, startTrack]);
 
   const seek = useCallback((seconds: number) => {
@@ -330,6 +363,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const actions = useMemo<PlayerActions>(
     () => ({
       playTrack,
+      cueTrack,
       toggle,
       pause,
       next,
@@ -345,6 +379,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       playTrack,
+      cueTrack,
       toggle,
       pause,
       next,

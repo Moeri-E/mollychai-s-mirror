@@ -79,10 +79,16 @@ export function AlbumDeck({ album }: Props) {
     };
   }, []);
 
-  /* ---------- 唱片：拖 = 换曲，点 = 暂停 ---------- */
+  /* ---------- 唱片：拖 = 换曲，点 = 暂停 ----------
+   * 用 setPointerCapture 锁定指针：拖动过程中即便指针滑出唱片圆，
+   * pointermove/up 仍派发给 platter，不会半路丢失造成"拖到一半卡住"。
+   * stopPropagation 保证不冒泡到 cover flow 的"左滑收起"手势——
+   * 后者靠 stage 的 onPointerDown 设置 pageDrag，这里一挡，pageDrag
+   * 就不会被置位，cover flow 的 window 级 move/up 全部提前 return。 */
   const onPlatterDown = (event: React.PointerEvent) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.stopPropagation();
+    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
     pointer.current = { x: event.clientX, y: event.clientY, t: Date.now(), moved: 0 };
     dragDx.current = 0;
   };
@@ -140,9 +146,16 @@ export function AlbumDeck({ album }: Props) {
     seek(ratio * total);
   };
 
-  const meta = track
-    ? `${tracks.length} 首 · ${playing ? '播放中' : current && current.id === track.id ? '已暂停' : '待播放'}`
-    : '暂无曲目';
+  const isCurrent = !!track && current?.id === track.id;
+  // 刚翻开、一秒都没播过时是"待播放"，播过再停下才叫"已暂停"
+  const stateText = !track
+    ? ''
+    : playing
+      ? '播放中'
+      : isCurrent && currentTime > 0
+        ? '已暂停'
+        : '待播放';
+  const meta = track ? `${tracks.length} 首 · ${stateText}` : '暂无曲目';
 
   return (
     <span

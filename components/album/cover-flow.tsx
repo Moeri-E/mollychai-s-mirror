@@ -36,7 +36,7 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
   const startIndex = Math.min(initialIndex ?? Math.floor(lastIndex / 2), lastIndex);
 
   // 只取动作，不取状态：订阅 state 会跟着 timeupdate 每秒重渲染四次整个 Cover Flow
-  const { playTrack, pause } = usePlayerActions();
+  const { cueTrack, pause } = usePlayerActions();
 
   const [active, setActive] = useState(startIndex);
   const [dragX, setDragX] = useState(0);
@@ -128,10 +128,10 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
       if (!album) return;
       setOpenIndex(index);
       setPhase('open');
-      // 必须在点击的同一个事件里起播：晚一点浏览器会认为不是用户操作，拒绝播放
-      if (album.tracks.length) playTrack(album.tracks[0], album.tracks);
+      // 翻开只是把唱片放上去，唱机静止待命；点唱片或唱臂才开始出声
+      if (album.tracks.length) cueTrack(album.tracks[0], album.tracks);
     },
-    [albums, playTrack],
+    [albums, cueTrack],
   );
 
   const closeAlbum = useCallback(() => {
