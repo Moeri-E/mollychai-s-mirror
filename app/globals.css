@@ -133,29 +133,29 @@ body {
     0 46px 88px rgb(0 0 0 / 10%);
 }
 
-/* 倒影只在横屏显示：竖屏下方空间紧，且 3D 旋转下的倒影会错位叠到背面 */
-@media (orientation: landscape) {
-  .cover-frame {
-    -webkit-box-reflect: below 8px
-      linear-gradient(
-        to bottom,
-        rgb(0 0 0 / 0%) 0%,
-        rgb(0 0 0 / 0%) 55%,
-        rgb(0 0 0 / 14%) 76%,
-        rgb(0 0 0 / 34%) 100%
-      );
-  }
+/* 倒影用「镜像副本 + 渐变遮罩」实现，不用 -webkit-box-reflect。
+   原因：box-reflect 在 3D transform 的子孙元素上各引擎渲染路径不一致
+   （Chrome 能画，Safari / CEF 系内置浏览器常常不画），且 Firefox 从未支持。
+   mask-image 现代浏览器全支持（Safari 需 -webkit- 前缀）。 */
+.cover-reflection {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  opacity: 0.28;
+  /* 注意不要设 transform-origin: top —— 以顶边为轴翻转会把倒影翻到卡片上方、
+     被卡片自身盖住，看起来就像"没有倒影"。用默认 center 才是向下镜像。 */
+  transform: scaleY(-1);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 55%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 55%);
+  pointer-events: none;
+  user-select: none;
+}
 
-  :root[data-theme='dark'] .cover-frame {
-    -webkit-box-reflect: below 8px
-      linear-gradient(
-        to bottom,
-        rgb(0 0 0 / 0%) 0%,
-        rgb(0 0 0 / 0%) 55%,
-        rgb(0 0 0 / 30%) 76%,
-        rgb(0 0 0 / 58%) 100%
-      );
-  }
+:root[data-theme='dark'] .cover-reflection {
+  opacity: 0.22;
 }
 
 /* 顶部导航下划线 */

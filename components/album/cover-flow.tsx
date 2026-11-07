@@ -49,8 +49,10 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
     const calc = () => {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const byWidth = Math.min(vw * 0.3, minimal ? 460 : 380);
-      const byHeight = minimal ? (vh - NAV_HEIGHT) / 1.9 : (vh - 300) / 1.45;
+      // 窄屏（手机）用更大的宽度占比，否则卡片只有屏宽的一半不到
+      const widthRatio = vw < 640 ? 0.62 : 0.34;
+      const byWidth = Math.min(vw * widthRatio, minimal ? 520 : 400);
+      const byHeight = minimal ? (vh - NAV_HEIGHT) / 1.8 : (vh - 300) / 1.45;
       setCardSize(Math.max(180, Math.min(byWidth, byHeight)));
     };
     calc();
@@ -229,6 +231,17 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
                   </span>
                 )}
               </span>
+              {album.coverUrl && (
+                // 倒影用真实镜像副本，各浏览器一致（不依赖 -webkit-box-reflect）
+                <span className="cover-reflection" aria-hidden="true">
+                  <img
+                    src={withBasePath(album.coverUrl)}
+                    alt=""
+                    draggable={false}
+                    className="h-full w-full object-cover"
+                  />
+                </span>
+              )}
             </button>
           );
         })}

@@ -11,8 +11,11 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
   const isImmersive = pathname === '/';
   const isAdmin = pathname.startsWith('/admin');
 
+  // 首页直接让 main 成为 flex 居中容器：
+  // 子元素上的 h-full（height: 100%）在 flex item 里不一定能解析出高度，
+  // 会导致内容贴顶、看起来"太靠上"。
   const mainClass = isImmersive
-    ? 'flex-1 overflow-hidden'
+    ? 'flex flex-1 items-center justify-center overflow-hidden'
     : isAdmin
       ? 'flex-1'
       : 'flex-1 pb-28';

@@ -26,12 +26,10 @@ export default function HomePage() {
   }
 
   return (
-    // 一屏装满：不出现滚动条，滚轮只用于翻拍
-    <div className="flex h-full items-center justify-center px-4 sm:px-6">
+    // main 已经是 flex 居中容器（见 SiteShell），这里只控制宽度
+    <div className="mx-auto w-full max-w-6xl px-4 sm:px-6">
       <h1 className="sr-only">mollychai&rsquo;s mirror — 唱片档案</h1>
-      <div className="w-full max-w-6xl">
-        <CoverFlow albums={albums} minimal />
-      </div>
+      <CoverFlow albums={albums} minimal />
     </div>
   );
 }

@@ -20,12 +20,15 @@ export function SiteNav() {
   return (
     <header className="relative z-30 h-[68px] shrink-0 border-b border-line/70">
       <nav className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="font-display text-lg leading-none tracking-tight text-ink">
+        <Link
+          href="/"
+          className="font-display shrink-0 text-[14px] leading-none tracking-tight text-ink sm:text-lg"
+        >
           mollychai&rsquo;s mirror
         </Link>
 
-        <div className="flex items-center gap-4 sm:gap-6">
-          <ul className="flex items-center gap-4 sm:gap-6">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-6">
+          <ul className="flex items-center gap-1.5 sm:gap-6">
           {LINKS.map((link) => {
             const active =
               link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
@@ -34,7 +37,7 @@ export function SiteNav() {
                 <Link
                   href={link.href}
                   data-active={active}
-                  className={`nav-link text-[13px] tracking-[0.06em] ${
+                  className={`nav-link whitespace-nowrap text-[11px] tracking-[0] sm:text-[13px] sm:tracking-[0.06em] ${
                     active ? 'text-ink' : 'text-ink-mute hover:text-ink'
                   }`}
                 >
