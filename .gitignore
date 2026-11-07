@@ -1,0 +1,27 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# 运行期数据与上传的媒体文件不入库
+data/
+!data/.gitkeep
+
+# 环境变量与密钥
+.env
+.env.local
+.env.*.local
+.env.agent
+!.env.example
+!.env.agent.example
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.vscode/
+.idea/

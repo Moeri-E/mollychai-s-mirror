@@ -1,0 +1,41 @@
+{
+  "name": "mollychai-mirror",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1 --port 3000",
+    "build": "next build",
+    "start": "next start -H 0.0.0.0 -p 5020",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "admin:password": "tsx scripts/set-password.ts",
+    "agent:token": "tsx scripts/issue-token.ts",
+    "lint": "oxlint"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "clsx": "2.1.1",
+    "lucide-react": "1.31.0",
+    "next": "^16.3.4",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "sharp": "^0.35.4",
+    "tailwind-merge": "3.6.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.2.1",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@types/sharp": "^0.31.1",
+    "tailwindcss": "4.2.1",
+    "tsx": "^4.23.13",
+    "typescript": "5.9.3"
+  }
+}
