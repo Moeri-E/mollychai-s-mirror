@@ -36,6 +36,8 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
   /** 复制按钮的反馈状态：点一下必须有回应，否则看起来像没生效 */
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle');
   const codeRef = useRef<HTMLElement | null>(null);
+  /** 操作成功的轻提示（与 message 的错误提示分开配色） */
+  const [notice, setNotice] = useState<string | null>(null);
 
   async function reload() {
     const response = await adminFetch('/api/admin/agents');
@@ -118,10 +120,24 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
 
   async function revoke(tokenId: string) {
     setBusy(true);
+    setNotice(null);
     try {
-      await adminFetch(`/api/admin/agents?tokenId=${encodeURIComponent(tokenId)}`, {
-        method: 'DELETE',
-      });
+      const response = await adminFetch(
+        `/api/admin/agents?tokenId=${encodeURIComponent(tokenId)}`,
+        { method: 'DELETE' },
+      );
+      if (!response.ok) {
+        setMessage(await readError(response));
+        return;
+      }
+      const payload = await response.json();
+      if (payload?.data?.uploaderRemoved) {
+        const name =
+          uploaders.find((item) => item.id === payload.data.uploaderId)?.displayName ??
+          payload.data.uploaderId;
+        setNotice(`「${name}」已无令牌，上传者记录已一并删除`);
+        window.setTimeout(() => setNotice(null), 5000);
+      }
       await reload();
     } finally {
       setBusy(false);
@@ -224,6 +240,11 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
       </section>
 
       <section className="mt-10 space-y-8">
+        {notice && (
+          <p className="border border-line bg-ink/[0.03] px-4 py-2 text-[11px] text-ink-soft">
+            {notice}
+          </p>
+        )}
         {uploaders.length === 0 && (
           <p className="py-6 text-sm text-ink-mute">还没有签发过令牌</p>
         )}

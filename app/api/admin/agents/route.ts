@@ -94,8 +94,11 @@ export async function DELETE(request: NextRequest) {
   const tokenId = new URL(request.url).searchParams.get('tokenId');
   if (!tokenId) return fail(422, 'MISSING_TOKEN_ID', '缺少 tokenId 参数');
 
-  const removed = revokeUploadToken(tokenId);
-  if (!removed) return fail(404, 'NOT_FOUND', '令牌不存在');
-  auditAdmin('agent.token.revoke', 'upload_token', tokenId, {});
-  return ok({ tokenId, revoked: true });
+  const result = revokeUploadToken(tokenId);
+  if (!result.revoked) return fail(404, 'NOT_FOUND', '令牌不存在');
+  auditAdmin('agent.token.revoke', 'upload_token', tokenId, {
+    uploaderId: result.uploaderId,
+    uploaderRemoved: result.uploaderRemoved,
+  });
+  return ok(result);
 }

@@ -280,9 +280,50 @@ export function setUploadTokenEnabled(tokenId: string, enabled: boolean): boolea
   return result.changes > 0;
 }
 
-export function revokeUploadToken(tokenId: string): boolean {
-  const result = getDb().prepare('DELETE FROM upload_tokens WHERE id = ?').run(tokenId);
-  return result.changes > 0;
+export type RevokeResult = {
+  revoked: boolean;
+  uploaderId: string | null;
+  /** 该上传者的最后一个令牌被吊销，上传者记录一并删除 */
+  uploaderRemoved: boolean;
+};
+
+/**
+ * 吊销令牌。若这是该上传者的最后一个令牌，连上传者记录一起删掉——
+ * 没有令牌的 uploader 只是空壳，留在列表里没有意义。
+ *
+ * 删除前先把 songs / agent_submissions 里的 uploader_id 置空：
+ * 这两张表存的是裸 TEXT，没有外键级联；若留着悬挂 id，将来有人用同一个
+ * uploaderId 重新签发时，历史歌曲会被错误地归到新人名下。
+ */
+export function revokeUploadToken(tokenId: string): RevokeResult {
+  const db = getDb();
+  const row = db
+    .prepare('SELECT uploader_id AS uploaderId FROM upload_tokens WHERE id = ?')
+    .get(tokenId) as { uploaderId: string } | undefined;
+
+  if (!row) return { revoked: false, uploaderId: null, uploaderRemoved: false };
+
+  const run = db.transaction(() => {
+    db.prepare('DELETE FROM upload_tokens WHERE id = ?').run(tokenId);
+
+    const left = db
+      .prepare('SELECT COUNT(*) AS c FROM upload_tokens WHERE uploader_id = ?')
+      .get(row.uploaderId) as { c: number };
+    if (left.c > 0) return false;
+
+    db.prepare('UPDATE songs SET uploader_id = NULL, updated_at = ? WHERE uploader_id = ?').run(
+      new Date().toISOString(),
+      row.uploaderId,
+    );
+    db.prepare('UPDATE agent_submissions SET uploader_id = NULL WHERE uploader_id = ?').run(
+      row.uploaderId,
+    );
+    db.prepare('DELETE FROM uploaders WHERE id = ?').run(row.uploaderId);
+    return true;
+  });
+
+  const uploaderRemoved = run();
+  return { revoked: true, uploaderId: row.uploaderId, uploaderRemoved };
 }
 
 export function setUploaderEnabled(uploaderId: string, enabled: boolean): boolean {
