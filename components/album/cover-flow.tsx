@@ -31,6 +31,7 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
   const [cardSize, setCardSize] = useState(320);
 
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const boxRef = useRef<HTMLDivElement | null>(null);
   const pointerStart = useRef<number | null>(null);
   const dragXRef = useRef(0);
   const suppressClick = useRef(false);
@@ -43,21 +44,33 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
   const go = useCallback((delta: number) => setActive((prev) => clamp(prev + delta)), [clamp]);
 
   // 卡片尺寸自适应。
-  // 沉浸模式要求卡片本身垂直居中，倒影是向下溢出的，
-  // 所以卡宽要足够小，保证 (可用高度 - 卡宽)/2 能放下倒影（约 0.45 倍卡宽）
+  // 沉浸模式下按「容器实际剩余高度」反算（容器 = 一屏减去导航与主标题），
+  // 所以标题占多少、视口多高，都不需要在这里另开参数。
+  // 除数 1.8 是为了让 (容器高 - 卡宽) / 2 正好容得下 0.42 倍卡宽的倒影。
   useEffect(() => {
     const calc = () => {
       const vw = window.innerWidth;
-      const vh = window.innerHeight;
+      const box = boxRef.current;
+      const availH =
+        minimal && box && box.clientHeight > 8
+          ? box.clientHeight
+          : window.innerHeight - NAV_HEIGHT;
       // 窄屏（手机）用更大的宽度占比，否则卡片只有屏宽的一半不到
       const widthRatio = vw < 640 ? 0.62 : 0.34;
       const byWidth = Math.min(vw * widthRatio, minimal ? 520 : 400);
-      const byHeight = minimal ? (vh - NAV_HEIGHT) / 1.8 : (vh - 300) / 1.45;
+      const byHeight = minimal ? availH / 1.8 : (window.innerHeight - 300) / 1.45;
       setCardSize(Math.max(180, Math.min(byWidth, byHeight)));
     };
     calc();
     window.addEventListener('resize', calc);
-    return () => window.removeEventListener('resize', calc);
+    // 标题字体加载完成后高度会变，容器尺寸也随之变化，用 ResizeObserver 补一次
+    const box = boxRef.current;
+    const observer = box && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(calc) : null;
+    if (box && observer) observer.observe(box);
+    return () => {
+      window.removeEventListener('resize', calc);
+      observer?.disconnect();
+    };
   }, [minimal]);
 
   useEffect(() => {
@@ -161,10 +174,16 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
   return (
     // 注意：不要在这里用 overflow-x-clip / overflow-hidden，
     // 那会把卡片下方的倒影一起裁掉（垂直方向也会被限制）
-    <div className="relative">
+    // 沉浸模式用 absolute inset-0 撑满父级：不能用 h-full（height:100%），
+    // 否则容器高度会反过来取决于卡片高度，和"按容器高度算卡片"形成循环，
+    // 两边一起塌到最小尺寸。
+    <div
+      ref={boxRef}
+      className={minimal ? 'absolute inset-0 flex items-center' : 'relative'}
+    >
       <div
         ref={stageRef}
-        className="coverflow-stage"
+        className="coverflow-stage w-full"
         style={{ height: stageHeight }}
         onPointerDown={onPointerDown}
         role="group"

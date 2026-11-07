@@ -17,15 +17,24 @@ export function SiteNav() {
 
   if (pathname.startsWith('/admin')) return null;
 
+  // 首页正中央已有手写体主标题，左上角再放一遍同样的名字会显得重复
+  const isHome = pathname === '/';
+
   return (
     <header className="relative z-30 h-[68px] shrink-0 border-b border-line/70">
-      <nav className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6">
-        <Link
-          href="/"
-          className="font-display shrink-0 text-[14px] leading-none tracking-tight text-ink sm:text-lg"
-        >
-          mollychai&rsquo;s mirror
-        </Link>
+      <nav
+        className={`mx-auto flex h-full max-w-6xl items-center px-4 sm:px-6 ${
+          isHome ? 'justify-end' : 'justify-between'
+        }`}
+      >
+        {!isHome && (
+          <Link
+            href="/"
+            className="font-display shrink-0 text-[14px] leading-none tracking-tight text-ink sm:text-lg"
+          >
+            mollychai&rsquo;s mirror
+          </Link>
+        )}
 
         <div className="flex min-w-0 items-center gap-1.5 sm:gap-6">
           <ul className="flex items-center gap-1.5 sm:gap-6">

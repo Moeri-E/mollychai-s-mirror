@@ -17,6 +17,7 @@
     "lint": "oxlint"
   },
   "dependencies": {
+    "@fontsource/great-vibes": "^5.2.0",
     "better-sqlite3": "^13.0.3",
     "clsx": "2.1.1",
     "lucide-react": "1.31.0",

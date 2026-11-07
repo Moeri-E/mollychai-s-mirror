@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 
+// 主标题字体：自托管，不走 Google Fonts（国内访问不通）
+import '@fontsource/great-vibes/400.css';
+
 import { PlayerProvider } from '@/components/player/player-provider';
 import { SiteShell } from '@/components/site-shell';
 import { SITE_NAME, SITE_TAGLINE } from '@/lib/constants';
