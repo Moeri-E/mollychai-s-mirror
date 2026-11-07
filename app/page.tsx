@@ -24,16 +24,16 @@ export default function HomePage() {
   }
 
   return (
-    // main 是纵向 flex 容器（见 SiteShell）：标题占固定高度，
-    // Cover Flow 吃掉剩余空间，卡片尺寸由它按这块空间反算，保证一屏不滚动
+    // main 是纵向 flex 容器（见 SiteShell），这里让它占满剩余高度。
+    // 标题交给 CoverFlow 渲染：它要按标题高度与卡片高度统一分配垂直空间，
+    // 这样标题才能精确居中在「页面顶部 → 卡片顶部」之间。
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col px-4 sm:px-6">
-      {/* z-10 必须加：墙面渐变是 z-index:0 的定位元素，按层叠顺序会盖在
-          静态排版的标题之上，把文字整体压暗 */}
-      <div className="relative z-10 shrink-0 pt-5 pb-1 text-center sm:pt-7">
-        <h1 className="wordmark">mollychai&rsquo;s mirror</h1>
-      </div>
       <div className="relative min-h-0 flex-1">
-        <CoverFlow albums={albums} minimal />
+        <CoverFlow
+          albums={albums}
+          minimal
+          title={<h1 className="wordmark">mollychai&rsquo;s mirror</h1>}
+        />
       </div>
     </div>
   );

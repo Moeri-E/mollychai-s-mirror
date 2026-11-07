@@ -45,18 +45,18 @@ export function ThemeToggle() {
 
   if (!mounted) {
     // 占位，避免 hydration 前后布局抖动
-    return <span className="inline-block h-7 w-7" aria-hidden />;
+    return <span className="inline-block h-9 w-9" aria-hidden />;
   }
 
   return (
     <button
       type="button"
       onClick={toggle}
-      className="flex h-7 w-7 items-center justify-center text-ink-mute transition hover:text-ink"
+      className="flex h-9 w-9 items-center justify-center text-ink-soft transition hover:text-ink"
       aria-label={theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'}
       title={theme === 'dark' ? '切换到浅色模式' : '切换到深色模式'}
     >
-      {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+      {theme === 'dark' ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
     </button>
   );
 }

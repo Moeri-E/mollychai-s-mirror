@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 
 import { withBasePath } from '@/lib/base-path';
 import type { AlbumCard } from '@/lib/catalog';
@@ -11,6 +12,8 @@ type Props = {
   initialIndex?: number;
   /** 沉浸模式：不渲染下方文字与按钮，只留卡片 */
   minimal?: boolean;
+  /** 沉浸模式下显示在卡片正上方的主标题 */
+  title?: ReactNode;
 };
 
 /** 旋转方向：-1 = 苹果方向（左侧卡 rotateY 为正，右侧为负）；改这一个数即可整体翻转 */
@@ -20,7 +23,7 @@ const SNAP_RATIO = 0.24;
 /** 导航栏高度，用于沉浸模式的三维空间计算 */
 const NAV_HEIGHT = 68;
 
-export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
+export function CoverFlow({ albums, initialIndex, minimal = false, title }: Props) {
   const router = useRouter();
   const lastIndex = Math.max(albums.length - 1, 0);
   const startIndex = Math.min(initialIndex ?? Math.floor(lastIndex / 2), lastIndex);
@@ -31,9 +34,12 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
   const [cardSize, setCardSize] = useState(320);
   /** 容器实测高度，用于算台面渐变该在哪收尾 */
   const [boxH, setBoxH] = useState(0);
+  /** 主标题实测高度，用来在上方留出等距的空白 */
+  const [titleH, setTitleH] = useState(0);
 
   const stageRef = useRef<HTMLDivElement | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
+  const titleRef = useRef<HTMLDivElement | null>(null);
   const pointerStart = useRef<number | null>(null);
   const dragXRef = useRef(0);
   const suppressClick = useRef(false);
@@ -46,10 +52,9 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
   const go = useCallback((delta: number) => setActive((prev) => clamp(prev + delta)), [clamp]);
 
   // 卡片尺寸自适应。
-  // 沉浸模式下按「容器实际剩余高度」反算（容器 = 一屏减去导航与主标题），
-  // 所以标题占多少、视口多高，都不需要在这里另开参数。
-  // 除数 1.7：卡片上方留 0.16 倍卡宽、下方留 0.54 倍卡宽（倒影约需 0.42 倍），
-  // 1 + 0.16 + 0.54 = 1.7。比居中时更贴近标题，也不会让倒影没地方放。
+  // 沉浸模式把容器高度切成三段：标题带（上下留等距空白）+ 卡片 + 台面，
+  // 卡片 = (容器高 − 标题带) / 1.54，其中 0.54 是卡片下方留给倒影的比例
+  // （倒影遮罩在 0.42 倍卡宽处结束，留一点余量）。
   useEffect(() => {
     const calc = () => {
       const vw = window.innerWidth;
@@ -59,18 +64,34 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
           ? box.clientHeight
           : window.innerHeight - NAV_HEIGHT;
       if (minimal && box) setBoxH(box.clientHeight);
+
+      // 标题高度实测（字体加载完成后会变），没测到之前先用估算值
+      const node = titleRef.current;
+      const measured = node ? Math.round(node.offsetHeight) : 0;
+      if (minimal && measured > 0) {
+        setTitleH((prev) => (prev === measured ? prev : measured));
+      }
+
+      const gap = Math.round(Math.min(36, Math.max(14, availH * 0.035)));
+      const reserve = minimal ? (measured || 96) + gap * 2 : 0;
+
       // 窄屏（手机）用更大的宽度占比，否则卡片只有屏宽的一半不到
       const widthRatio = vw < 640 ? 0.62 : 0.34;
       const byWidth = Math.min(vw * widthRatio, minimal ? 520 : 400);
-      const byHeight = minimal ? availH / 1.7 : (window.innerHeight - 300) / 1.45;
+      const byHeight = minimal
+        ? (availH - reserve) / 1.54
+        : (window.innerHeight - 300) / 1.45;
       setCardSize(Math.max(180, Math.min(byWidth, byHeight)));
     };
     calc();
     window.addEventListener('resize', calc);
-    // 标题字体加载完成后高度会变，容器尺寸也随之变化，用 ResizeObserver 补一次
+    // 容器尺寸变化（窗口、字体替换）后重算
     const box = boxRef.current;
     const observer = box && typeof ResizeObserver !== 'undefined' ? new ResizeObserver(calc) : null;
     if (box && observer) observer.observe(box);
+    if (typeof document !== 'undefined' && document.fonts) {
+      document.fonts.ready.then(calc).catch(() => {});
+    }
     return () => {
       window.removeEventListener('resize', calc);
       observer?.disconnect();
@@ -174,11 +195,14 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
   // 普通模式：舞台额外留 45% 给倒影，卡片相应上移到光学位
   const stageHeight = minimal ? cardSize : cardSize * 1.45;
   const topPercent = (cardSize / 2 / stageHeight) * 100;
-  // 沉浸模式不再垂直居中：基准偏移取 0.16 倍卡宽，让卡片贴近标题；
-  // 若卡片被宽度限制（大屏、手机），容器还有富余高度，这部分上下均分，
-  // 否则余量会全堆在底部，看起来像悬在上半页。
-  const slack = Math.max(0, boxH - cardSize * 1.7);
-  const stageTop = minimal ? Math.round(cardSize * 0.16 + slack * 0.5) : 0;
+  // 标题带：容器顶部到卡片顶部这一块，标题在其中垂直居中（上下留白相等）。
+  // 卡片被宽度限制时（大屏、手机）还剩富余高度，一半并入标题带（标题仍居中、
+  // 但离卡片更远一点），一半留在下方，避免整体悬在上半页。
+  const baseGap = Math.round(Math.min(36, Math.max(14, boxH * 0.035)));
+  const baseReserve = minimal ? (titleH || 96) + baseGap * 2 : 0;
+  const slack = Math.max(0, boxH - baseReserve - cardSize * 1.54);
+  const titleBand = Math.round(baseReserve + slack * 0.4);
+  const stageTop = minimal ? titleBand : 0;
   // 台面渐变要在视口底收尾，长度按实测剩余空间算
   const floorHeight = minimal
     ? Math.max(140, Math.round(boxH - stageTop - cardSize))
@@ -190,10 +214,16 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
     // 沉浸模式用 absolute inset-0 撑满父级：不能用 h-full（height:100%），
     // 否则容器高度会反过来取决于卡片高度，和"按容器高度算卡片"形成循环，
     // 两边一起塌到最小尺寸。
-    <div
-      ref={boxRef}
-      className={minimal ? 'absolute inset-0 flex items-start' : 'relative'}
-    >
+    <div ref={boxRef} className={minimal ? 'absolute inset-0' : 'relative'}>
+      {minimal && title && (
+        <div
+          className="absolute inset-x-0 top-0 z-10 flex items-center justify-center px-4"
+          style={{ height: titleBand }}
+        >
+          <div ref={titleRef}>{title}</div>
+        </div>
+      )}
+
       <div
         ref={stageRef}
         className="coverflow-stage w-full"

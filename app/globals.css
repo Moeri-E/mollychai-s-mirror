@@ -131,8 +131,9 @@ body {
 /* 页头延续墙面最暗处的颜色。
    墙面渐变在 main 顶部（导航下缘）刚好走到最暗，若页头仍是原底色，
    导航下方会出现一道横向断层，墙面看起来像被切掉了一截。
-   用 :has() 只在确实渲染了场景层的页面生效。 */
-body:has(.coverflow-ground) header {
+   用 :has() 只在确实渲染了场景层的页面生效；必须限定 [data-site-nav]，
+   否则页面内容里自己的 <header>（如专辑页的大标题块）也会被染色。 */
+body:has(.coverflow-ground) header[data-site-nav] {
   background: var(--wall-top);
 }
 
