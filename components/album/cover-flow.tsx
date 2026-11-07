@@ -243,16 +243,6 @@ export function CoverFlow({ albums, initialIndex, minimal = false, title }: Prop
           <span className="coverflow-floor" />
         </div>
 
-        {/* 卡片底边的接触阴影 */}
-        <div
-          className="coverflow-contact"
-          aria-hidden
-          style={{
-            top: `${topPercent * 2}%`,
-            width: cardSize * 1.3,
-            height: cardSize * 0.15,
-          }}
-        />
 
         {albums.map((album, index) => {
           const offset = index - active;
@@ -313,16 +303,20 @@ export function CoverFlow({ albums, initialIndex, minimal = false, title }: Prop
                 )}
               </span>
               {album.coverUrl && (
-                // 倒影用真实镜像副本，各浏览器一致（不依赖 -webkit-box-reflect）
-                <span className="cover-reflection" aria-hidden="true">
-                  <img
-                    src={withBasePath(album.coverUrl)}
-                    alt=""
-                    draggable={false}
-                    className="h-full w-full object-cover"
-                    style={{ transform: 'scaleY(-1)' }}
-                  />
-                </span>
+                <>
+                  {/* 倒影用真实镜像副本，各浏览器一致（不依赖 -webkit-box-reflect） */}
+                  <span className="cover-reflection" aria-hidden="true">
+                    <img
+                      src={withBasePath(album.coverUrl)}
+                      alt=""
+                      draggable={false}
+                      className="h-full w-full object-cover"
+                      style={{ transform: 'scaleY(-1)' }}
+                    />
+                  </span>
+                  {/* 接触阴影放卡片内部：跟着这张卡一起动，压在倒影之上 */}
+                  <span className="cover-contact" aria-hidden="true" />
+                </>
               )}
             </button>
           );

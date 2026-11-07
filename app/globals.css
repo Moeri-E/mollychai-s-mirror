@@ -26,7 +26,7 @@
   --horizon-line: rgb(0 0 0 / 17%);
   --floor-sheen: transparent;
   --floor-bottom: rgb(0 0 0 / 23%);
-  --contact-shadow: rgb(0 0 0 / 42%);
+  --contact-shadow: rgb(0 0 0 / 26%);
 }
 
 /* 深色模式：覆盖 @theme 生成的 CSS 变量（属性选择器优先级高于 :root） */
@@ -51,7 +51,7 @@
   --horizon-line: rgb(255 255 255 / 16%);
   --floor-sheen: rgb(255 255 255 / 12%);
   --floor-bottom: rgb(0 0 0 / 88%);
-  --contact-shadow: rgb(0 0 0 / 62%);
+  --contact-shadow: rgb(0 0 0 / 34%);
 }
 
 html,
@@ -210,23 +210,26 @@ body:has(.coverflow-ground) header[data-site-nav] {
   );
 }
 
-/* 接触阴影：卡片底边那一小团紧贴的投影，是"立住"最关键的一条线索。
-   它要压在倒影「之上」（z-index 高于卡片），因为现实里接触点附近的倒影
-   会被投影压暗；只压在倒影下方时会被倒影整个盖住，等于不存在。 */
-.coverflow-contact {
+/* 接触阴影：卡片正下方贴着底边的一团暗影，是"立住"最关键的一条线索。
+   放在卡片内部（倒影之后，因此压在倒影之上），跟着卡片一起位移、一起倾斜——
+   做成舞台中央的独立元素会固定在原地，切卡时卡片滑走、阴影不动，很出戏。
+   从底边往下铺：顶部与卡片边缘重合，blur 会把接缝晕开。 */
+.cover-contact {
   position: absolute;
+  top: 100%;
   left: 50%;
+  width: 106%;
+  height: 7%;
+  transform: translate(-50%, 0);
   border-radius: 50%;
   background: radial-gradient(
     ellipse at center,
     var(--contact-shadow) 0%,
-    color-mix(in srgb, var(--contact-shadow), transparent 64%) 42%,
-    transparent 72%
+    color-mix(in srgb, var(--contact-shadow), transparent 70%) 40%,
+    transparent 70%
   );
-  filter: blur(6px);
-  transform: translate(-50%, -16%);
+  filter: blur(8px);
   pointer-events: none;
-  z-index: 300;
 }
 
 .cover-card {
@@ -266,8 +269,9 @@ body:has(.coverflow-ground) header[data-site-nav] {
    一道断层，看起来像"倒影离得很远"。亮度衰减全部交给 mask，接触面接近全亮。 */
 .cover-reflection {
   position: absolute;
-  /* 与卡片拉开一点距离，避免看起来像卡片被拉长 */
-  top: calc(100% + 10px);
+  /* 紧贴卡片底边，不留缝：留 10px 的话深色模式下会露出背景，
+     看起来就是一道黑边，比"卡片被拉长"更难受 */
+  top: 100%;
   left: 0;
   width: 100%;
   height: 100%;
