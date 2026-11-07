@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const LINKS = [
-  { href: '/', label: 'HOME' },
-  { href: '/albums', label: 'ALBUMS' },
-  { href: '/singles', label: 'SINGLES' },
-  { href: '/about', label: 'ABOUT' },
+  { href: '/', label: '首页' },
+  { href: '/albums', label: '专辑' },
+  { href: '/singles', label: '单曲' },
+  { href: '/about', label: '关于' },
 ];
 
 export function SiteNav() {
@@ -31,7 +31,7 @@ export function SiteNav() {
                 <Link
                   href={link.href}
                   data-active={active}
-                  className={`nav-link text-[11px] tracking-[0.16em] ${
+                  className={`nav-link text-[13px] tracking-[0.06em] ${
                     active ? 'text-ink' : 'text-ink-mute hover:text-ink'
                   }`}
                 >

@@ -28,9 +28,9 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
       <div className="pt-8">
         <Link
           href="/albums"
-          className="nav-link text-[11px] tracking-[0.16em] text-ink-mute uppercase hover:text-ink"
+          className="nav-link text-[12px] text-ink-mute hover:text-ink"
         >
-          ← back to albums
+          ← 返回专辑列表
         </Link>
       </div>
 
@@ -52,15 +52,15 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
         </div>
 
         <div className="flex flex-col justify-end">
-          <p className="text-[10px] tracking-[0.3em] text-ink-mute uppercase">album</p>
+          <p className="text-[11px] tracking-[0.22em] text-ink-mute">专辑</p>
           <h1 className="font-display mt-3 text-3xl leading-tight text-ink sm:text-5xl">
             {album.title}
           </h1>
           <p className="mt-3 text-sm text-ink-soft">{album.artist}</p>
 
-          <p className="mt-4 text-[11px] tracking-[0.14em] text-ink-mute uppercase">
+          <p className="mt-4 text-[12px] text-ink-mute">
             {album.releaseDate ? `${album.releaseDate.slice(0, 4)} · ` : ''}
-            {String(album.trackCount).padStart(2, '0')} tracks ·{' '}
+            {String(album.trackCount).padStart(2, '0')} 首 ·{' '}
             {formatTotalDuration(album.totalDuration)}
           </p>
 
@@ -78,7 +78,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
 
       {/* 曲目 */}
       <section className="border-t border-line/70 py-10">
-        <h2 className="mb-4 text-[10px] tracking-[0.3em] text-ink-mute uppercase">tracklist</h2>
+        <h2 className="mb-4 text-[11px] tracking-[0.22em] text-ink-mute">曲目</h2>
         <TrackList tracks={tracks} fallbackCover={album.coverUrl} />
       </section>
     </div>

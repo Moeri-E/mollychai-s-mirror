@@ -8,7 +8,7 @@ export const metadata = { title: 'About' };
 
 export default function AboutPage() {
   const stats = getSiteStats();
-  const aboutTitle = getSetting('about_title') ?? 'About this mirror';
+  const aboutTitle = getSetting('about_title') ?? '关于这面镜子';
   const aboutBody =
     getSetting('about_body') ??
     'mollychai’s mirror 是一个记录音乐、情绪与记忆的数字空间。以专辑为单位整理作品，像翻阅实体唱片一样浏览与聆听。';
@@ -16,7 +16,7 @@ export default function AboutPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6">
       <header className="pt-14 pb-10 sm:pt-20">
-        <p className="text-[10px] tracking-[0.34em] text-ink-mute uppercase">about</p>
+        <p className="text-[11px] tracking-[0.22em] text-ink-mute">关于</p>
         <h1 className="font-display mt-3 text-4xl text-ink sm:text-5xl">{aboutTitle}</h1>
       </header>
 
@@ -27,15 +27,15 @@ export default function AboutPage() {
       <section className="border-t border-line/70 py-10">
         <dl className="grid grid-cols-3 gap-6 text-center">
           <div>
-            <dt className="text-[10px] tracking-[0.24em] text-ink-mute uppercase">albums</dt>
+            <dt className="text-[11px] tracking-[0.16em] text-ink-mute">专辑</dt>
             <dd className="font-display mt-2 text-3xl text-ink">{stats.albums}</dd>
           </div>
           <div>
-            <dt className="text-[10px] tracking-[0.24em] text-ink-mute uppercase">tracks</dt>
+            <dt className="text-[11px] tracking-[0.16em] text-ink-mute">曲目</dt>
             <dd className="font-display mt-2 text-3xl text-ink">{stats.songs}</dd>
           </div>
           <div>
-            <dt className="text-[10px] tracking-[0.24em] text-ink-mute uppercase">sources</dt>
+            <dt className="text-[11px] tracking-[0.16em] text-ink-mute">来源</dt>
             <dd className="font-display mt-2 text-3xl text-ink">{stats.uploaders}</dd>
           </div>
         </dl>

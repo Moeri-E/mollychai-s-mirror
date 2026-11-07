@@ -13,8 +13,8 @@ export default function AlbumsPage() {
   return (
     <div className="mx-auto max-w-6xl px-4 sm:px-6">
       <header className="pt-14 pb-8 sm:pt-20">
-        <p className="text-[10px] tracking-[0.34em] text-ink-mute uppercase">collection</p>
-        <h1 className="font-display mt-3 text-4xl text-ink sm:text-5xl">The album archive.</h1>
+        <p className="text-[11px] tracking-[0.22em] text-ink-mute">收藏</p>
+        <h1 className="font-display mt-3 text-4xl text-ink sm:text-5xl">唱片档案。</h1>
         <p className="mt-4 max-w-lg text-sm leading-relaxed text-ink-soft">
           拖动、滚轮或方向键翻阅唱片。点击当前封面进入专辑。
         </p>
@@ -26,7 +26,7 @@ export default function AlbumsPage() {
 
       {albums.length > 0 && (
         <section className="border-t border-line/70 py-12">
-          <h2 className="mb-6 text-[10px] tracking-[0.3em] text-ink-mute uppercase">all albums</h2>
+          <h2 className="mb-6 text-[11px] tracking-[0.22em] text-ink-mute">全部专辑</h2>
           <div className="grid grid-cols-2 gap-x-5 gap-y-9 sm:grid-cols-3 lg:grid-cols-4">
             {albums.map((album) => (
               <Link key={album.id} href={`/albums/${album.id}`} className="group block">
@@ -53,8 +53,8 @@ export default function AlbumsPage() {
                   {album.artist}
                   {album.releaseDate ? ` · ${album.releaseDate.slice(0, 4)}` : ''}
                 </p>
-                <p className="mt-1 text-[10px] tracking-[0.1em] text-ink-mute uppercase">
-                  {album.trackCount} tracks · {formatTotalDuration(album.totalDuration)}
+                <p className="mt-1 text-[11px] text-ink-mute">
+                  {album.trackCount} 首 · {formatTotalDuration(album.totalDuration)}
                 </p>
               </Link>
             ))}

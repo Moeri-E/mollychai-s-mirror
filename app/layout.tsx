@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     template: `%s · ${SITE_NAME}`,
   },
   description:
-    'A personal music archive. Albums, singles and memories, kept like a shelf of records.',
+    '一个个人音乐档案馆。专辑、单曲与记忆，像唱片架一样被妥善收好。',
   openGraph: {
     title: SITE_NAME,
     description: SITE_TAGLINE,

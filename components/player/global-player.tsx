@@ -19,8 +19,8 @@ export function GlobalPlayer() {
       {queueOpen && (
         <div className="fixed bottom-[76px] right-0 z-40 w-full max-w-sm border-t border-l border-line bg-paper/95 backdrop-blur-md sm:right-4 sm:rounded-t-lg">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <span className="text-xs tracking-[0.18em] text-ink-mute uppercase">
-              Queue · {state.queue.length}
+            <span className="text-[12px] tracking-[0.1em] text-ink-mute">
+              播放队列 · {state.queue.length}
             </span>
             <button
               type="button"

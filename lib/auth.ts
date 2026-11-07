@@ -363,18 +363,21 @@ export async function requireAdminPage(): Promise<AdminSession> {
 function isAllowedOrigin(request: Request): boolean {
   const origin = request.headers.get('origin');
   if (!origin) return false;
-  const configured = process.env.PUBLIC_BASE_URL;
   const allowed = new Set([
     'http://127.0.0.1:3000',
     'http://localhost:3000',
     'http://127.0.0.1:5020',
     'http://localhost:5020',
   ]);
-  if (configured) {
+  // PUBLIC_BASE_URL 支持逗号分隔多个来源（局域网 IP、公网域名等）
+  const configured = process.env.PUBLIC_BASE_URL ?? '';
+  for (const item of configured.split(',')) {
+    const trimmed = item.trim();
+    if (!trimmed) continue;
     try {
-      allowed.add(new URL(configured).origin);
+      allowed.add(new URL(trimmed).origin);
     } catch {
-      /* ignore malformed */
+      /* 忽略格式错误的配置项 */
     }
   }
   return allowed.has(origin);

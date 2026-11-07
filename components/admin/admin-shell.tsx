@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 
 const NAV = [
-  { href: '/admin', label: 'Dashboard' },
-  { href: '/admin/albums', label: 'Albums' },
-  { href: '/admin/songs', label: 'Songs' },
-  { href: '/admin/agents', label: 'Agents' },
+  { href: '/admin', label: '概览' },
+  { href: '/admin/albums', label: '专辑' },
+  { href: '/admin/songs', label: '歌曲' },
+  { href: '/admin/agents', label: '智能体' },
 ];
 
 export function AdminShell({ children }: { children: React.ReactNode }) {
@@ -34,7 +34,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:flex-row sm:px-6">
         <aside className="sm:w-48 sm:shrink-0">
           <p className="font-display text-lg">mollychai&rsquo;s mirror</p>
-          <p className="mt-1 text-[10px] tracking-[0.24em] text-ink-mute uppercase">admin</p>
+          <p className="mt-1 text-[11px] tracking-[0.16em] text-ink-mute">管理后台</p>
 
           <nav className="mt-6">
             <ul className="space-y-1">

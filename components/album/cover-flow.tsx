@@ -144,7 +144,7 @@ export function CoverFlow({ albums, initialIndex = 0 }: Props) {
                 ) : (
                   <span className="flex h-full w-full flex-col items-center justify-center gap-2 text-ink-mute">
                     <span className="font-display text-3xl">{album.title.slice(0, 1)}</span>
-                    <span className="text-[10px] tracking-[0.3em] uppercase">no cover</span>
+                    <span className="text-[11px] tracking-[0.2em] text-ink-mute">无封面</span>
                   </span>
                 )}
               </span>
@@ -155,15 +155,15 @@ export function CoverFlow({ albums, initialIndex = 0 }: Props) {
 
       {/* 当前专辑信息 */}
       <div className="mx-auto mt-6 max-w-xl text-center">
-        <p className="text-[10px] tracking-[0.3em] text-ink-mute uppercase">
-          {String(active + 1).padStart(2, '0')} — {albums[active].releaseDate?.slice(0, 4) ?? 'undated'}
+        <p className="text-[11px] tracking-[0.18em] text-ink-mute">
+          {String(active + 1).padStart(2, '0')} — {albums[active].releaseDate?.slice(0, 4) ?? '未标注年份'}
         </p>
         <h2 className="font-display mt-2 text-2xl text-ink sm:text-3xl">{albums[active].title}</h2>
         <p className="mt-1 text-sm text-ink-soft">{albums[active].artist}</p>
-        <p className="mt-3 text-xs tracking-[0.12em] text-ink-mute uppercase">
-          {albums[active].trackCount} tracks
+        <p className="mt-3 text-[12px] text-ink-mute">
+          {albums[active].trackCount} 首
           {albums[active].totalDuration > 0
-            ? ` · ${Math.round(albums[active].totalDuration / 60)} min`
+            ? ` · ${Math.round(albums[active].totalDuration / 60)} 分钟`
             : ''}
         </p>
         {albums[active].description && (
@@ -175,24 +175,24 @@ export function CoverFlow({ albums, initialIndex = 0 }: Props) {
             type="button"
             onClick={() => go(-1)}
             disabled={active === 0}
-            className="border border-line px-4 py-1.5 text-[11px] tracking-[0.14em] text-ink-soft transition hover:border-ink hover:text-ink disabled:opacity-30"
+            className="border border-line px-4 py-1.5 text-[12px] text-ink-soft transition hover:border-ink hover:text-ink disabled:opacity-30"
           >
-            PREV
+            上一张
           </button>
           <button
             type="button"
             onClick={() => router.push(`/albums/${albums[active].id}`)}
-            className="border border-ink bg-ink px-5 py-1.5 text-[11px] tracking-[0.14em] text-paper transition hover:bg-transparent hover:text-ink"
+            className="border border-ink bg-ink px-5 py-1.5 text-[12px] text-paper transition hover:bg-transparent hover:text-ink"
           >
-            OPEN ALBUM
+            打开专辑
           </button>
           <button
             type="button"
             onClick={() => go(1)}
             disabled={active === albums.length - 1}
-            className="border border-line px-4 py-1.5 text-[11px] tracking-[0.14em] text-ink-soft transition hover:border-ink hover:text-ink disabled:opacity-30"
+            className="border border-line px-4 py-1.5 text-[12px] text-ink-soft transition hover:border-ink hover:text-ink disabled:opacity-30"
           >
-            NEXT
+            下一张
           </button>
         </div>
       </div>

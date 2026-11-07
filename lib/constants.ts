@@ -1,7 +1,7 @@
 import path from 'node:path';
 
 export const SITE_NAME = "mollychai's mirror";
-export const SITE_TAGLINE = 'A mirror of sounds, memories and moments.';
+export const SITE_TAGLINE = '声音、记忆与片刻的镜像。';
 
 export const ADMIN_COOKIE_NAME = 'mm_admin_session';
 export const ADMIN_SESSION_TTL_MS = 8 * 60 * 60 * 1000;
