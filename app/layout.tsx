@@ -1,8 +1,7 @@
 import type { Metadata } from 'next';
 
-import { GlobalPlayer } from '@/components/player/global-player';
 import { PlayerProvider } from '@/components/player/player-provider';
-import { SiteNav } from '@/components/layout/site-nav';
+import { SiteShell } from '@/components/site-shell';
 import { SITE_NAME, SITE_TAGLINE } from '@/lib/constants';
 
 import './globals.css';
@@ -24,7 +23,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN" suppressHydrationWarning>
-      <body className="paper-grain min-h-screen bg-paper text-ink antialiased">
+      <body className="paper-grain flex min-h-screen flex-col bg-paper text-ink antialiased">
         {/* 首屏之前确定主题，避免深色用户看到白屏闪烁 */}
         <script
           dangerouslySetInnerHTML={{
@@ -33,9 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           }}
         />
         <PlayerProvider>
-          <SiteNav />
-          <main className="relative z-10 pb-28">{children}</main>
-          <GlobalPlayer />
+          <SiteShell>{children}</SiteShell>
         </PlayerProvider>
       </body>
     </html>

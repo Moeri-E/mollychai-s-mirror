@@ -10,26 +10,28 @@ export default function HomePage() {
 
   if (albums.length === 0) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-28 text-center sm:px-6">
-        <h1 className="font-display text-2xl text-ink">还没有专辑</h1>
-        <p className="mt-3 text-sm text-ink-soft">通过管理后台上传第一张专辑。</p>
-        <Link
-          href="/admin"
-          className="mt-6 inline-block border border-ink px-5 py-2 text-[13px] transition hover:bg-ink hover:text-paper"
-        >
-          进入管理后台
-        </Link>
+      <div className="flex h-full items-center justify-center px-6 text-center">
+        <div>
+          <h1 className="font-display text-2xl text-ink">还没有专辑</h1>
+          <p className="mt-3 text-sm text-ink-soft">通过管理后台上传第一张专辑。</p>
+          <Link
+            href="/admin"
+            className="mt-6 inline-block border border-ink px-5 py-2 text-[13px] transition hover:bg-ink hover:text-paper"
+          >
+            进入管理后台
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 sm:px-6">
+    // 一屏装满：不出现滚动条，滚轮只用于翻拍
+    <div className="flex h-full items-center justify-center px-4 sm:px-6">
       <h1 className="sr-only">mollychai&rsquo;s mirror — 唱片档案</h1>
-
-      <section className="pt-8 sm:pt-10">
-        <CoverFlow albums={albums} />
-      </section>
+      <div className="w-full max-w-6xl">
+        <CoverFlow albums={albums} minimal />
+      </div>
     </div>
   );
 }

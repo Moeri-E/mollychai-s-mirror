@@ -9,14 +9,18 @@ import type { AlbumCard } from '@/lib/catalog';
 type Props = {
   albums: AlbumCard[];
   initialIndex?: number;
+  /** 沉浸模式：不渲染下方文字与按钮，只留卡片 */
+  minimal?: boolean;
 };
 
 /** 旋转方向：-1 = 苹果方向（左侧卡 rotateY 为正，右侧为负）；改这一个数即可整体翻转 */
 const TURN = -1;
 /** 拖动超过该比例（相对卡宽）就翻页 */
 const SNAP_RATIO = 0.24;
+/** 导航栏高度，用于沉浸模式的三维空间计算 */
+const NAV_HEIGHT = 68;
 
-export function CoverFlow({ albums, initialIndex }: Props) {
+export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
   const router = useRouter();
   const lastIndex = Math.max(albums.length - 1, 0);
   const startIndex = Math.min(initialIndex ?? Math.floor(lastIndex / 2), lastIndex);
@@ -26,6 +30,7 @@ export function CoverFlow({ albums, initialIndex }: Props) {
   const [dragging, setDragging] = useState(false);
   const [cardSize, setCardSize] = useState(320);
 
+  const stageRef = useRef<HTMLDivElement | null>(null);
   const pointerStart = useRef<number | null>(null);
   const suppressClick = useRef(false);
   const wheelLock = useRef(0);
@@ -36,19 +41,20 @@ export function CoverFlow({ albums, initialIndex }: Props) {
   );
   const go = useCallback((delta: number) => setActive((prev) => clamp(prev + delta)), [clamp]);
 
-  // 卡片尺寸随视口自适应：不超宽度上限，同时保证卡片 + 倒影塞得进视口高度
+  // 卡片尺寸自适应：沉浸模式下撑满一屏，普通模式给下方文字留空间
   useEffect(() => {
     const calc = () => {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const byWidth = Math.min(vw * 0.3, 380);
-      const byHeight = (vh - 300) / 1.5;
-      setCardSize(Math.max(196, Math.min(byWidth, byHeight)));
+      const reserved = minimal ? NAV_HEIGHT : 300;
+      const byHeight = (vh - reserved) / 1.6;
+      const byWidth = Math.min(vw * 0.3, minimal ? 460 : 380);
+      setCardSize(Math.max(180, Math.min(byWidth, byHeight)));
     };
     calc();
     window.addEventListener('resize', calc);
     return () => window.removeEventListener('resize', calc);
-  }, []);
+  }, [minimal]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -59,6 +65,25 @@ export function CoverFlow({ albums, initialIndex }: Props) {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
+  }, [go]);
+
+  // 滚轮：必须用非 passive 监听才能 preventDefault，
+  // 否则浏览器会同时滚动页面（React 的 onWheel 是 passive 的，拦不住）
+  useEffect(() => {
+    const el = stageRef.current;
+    if (!el) return;
+    const handler = (event: WheelEvent) => {
+      event.preventDefault();
+      const now = Date.now();
+      if (now - wheelLock.current < 340) return;
+      const delta =
+        Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+      if (Math.abs(delta) < 8) return;
+      wheelLock.current = now;
+      go(delta > 0 ? 1 : -1);
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
   }, [go]);
 
   const onPointerDown = (event: React.PointerEvent) => {
@@ -86,15 +111,6 @@ export function CoverFlow({ albums, initialIndex }: Props) {
     else if (distance >= cardSize * SNAP_RATIO) go(-1);
   };
 
-  const onWheel = (event: React.WheelEvent) => {
-    const now = Date.now();
-    if (now - wheelLock.current < 340) return;
-    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
-    if (Math.abs(delta) < 12) return;
-    wheelLock.current = now;
-    go(delta > 0 ? 1 : -1);
-  };
-
   const handleCardClick = (index: number) => {
     if (suppressClick.current) {
       suppressClick.current = false;
@@ -119,13 +135,13 @@ export function CoverFlow({ albums, initialIndex }: Props) {
     // 那会把卡片下方的倒影一起裁掉（垂直方向也会被限制）
     <div className="relative">
       <div
+        ref={stageRef}
         className="coverflow-stage"
         style={{ height: cardSize * 1.6 }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={finishDrag}
         onPointerCancel={finishDrag}
-        onWheel={onWheel}
         role="group"
         aria-roledescription="carousel"
         aria-label="专辑滑动展示"
@@ -137,12 +153,9 @@ export function CoverFlow({ albums, initialIndex }: Props) {
           const distance = Math.abs(offset);
           const dir = offset > 0 ? 1 : offset < 0 ? -1 : 0;
 
-          // 横向间距：首张 58% 卡宽，之后每远一张再加 24%
           const shift =
             cardSize * (0.58 * Math.min(distance, 1) + 0.24 * Math.max(0, distance - 1));
-          // 纵深要足够大，否则侧卡近端会跑到中间卡片前面
           const depth = -distance * cardSize * 0.57;
-          // 转角 56° 起，越远越饱和
           const rotate = distance === 0 ? 0 : 56 + Math.max(0, distance - 1) * 8;
           const opacity = Math.max(0, Math.min(1, 0.98 - distance * 0.09));
 
@@ -197,50 +210,53 @@ export function CoverFlow({ albums, initialIndex }: Props) {
         })}
       </div>
 
-      {/* 当前专辑信息 */}
-      <div className="mx-auto mt-2 max-w-xl text-center">
-        <p className="text-[11px] tracking-[0.18em] text-ink-mute">
-          {String(active + 1).padStart(2, '0')} —{' '}
-          {albums[active].releaseDate?.slice(0, 4) ?? '未标注年份'}
-        </p>
-        <h2 className="font-display mt-2 text-2xl text-ink sm:text-3xl">{albums[active].title}</h2>
-        <p className="mt-1 text-sm text-ink-soft">{albums[active].artist}</p>
-        <p className="mt-3 text-[12px] text-ink-mute">
-          {albums[active].trackCount} 首
-          {albums[active].totalDuration > 0
-            ? ` · ${Math.round(albums[active].totalDuration / 60)} 分钟`
-            : ''}
-        </p>
-        {albums[active].description && (
-          <p className="mt-4 text-sm leading-relaxed text-ink-soft">{albums[active].description}</p>
-        )}
+      {!minimal && (
+        <div className="mx-auto mt-2 max-w-xl text-center">
+          <p className="text-[11px] tracking-[0.18em] text-ink-mute">
+            {String(active + 1).padStart(2, '0')} —{' '}
+            {albums[active].releaseDate?.slice(0, 4) ?? '未标注年份'}
+          </p>
+          <h2 className="font-display mt-2 text-2xl text-ink sm:text-3xl">{albums[active].title}</h2>
+          <p className="mt-1 text-sm text-ink-soft">{albums[active].artist}</p>
+          <p className="mt-3 text-[12px] text-ink-mute">
+            {albums[active].trackCount} 首
+            {albums[active].totalDuration > 0
+              ? ` · ${Math.round(albums[active].totalDuration / 60)} 分钟`
+              : ''}
+          </p>
+          {albums[active].description && (
+            <p className="mt-4 text-sm leading-relaxed text-ink-soft">
+              {albums[active].description}
+            </p>
+          )}
 
-        <div className="mt-5 flex items-center justify-center gap-3">
-          <button
-            type="button"
-            onClick={() => go(-1)}
-            disabled={active === 0}
-            className="border border-line px-4 py-1.5 text-[12px] text-ink-soft transition hover:border-ink hover:text-ink disabled:opacity-30"
-          >
-            上一张
-          </button>
-          <button
-            type="button"
-            onClick={() => router.push(`/albums/${albums[active].id}`)}
-            className="border border-ink bg-ink px-5 py-1.5 text-[12px] text-paper transition hover:bg-transparent hover:text-ink"
-          >
-            打开专辑
-          </button>
-          <button
-            type="button"
-            onClick={() => go(1)}
-            disabled={active === lastIndex}
-            className="border border-line px-4 py-1.5 text-[12px] text-ink-soft transition hover:border-ink hover:text-ink disabled:opacity-30"
-          >
-            下一张
-          </button>
+          <div className="mt-5 flex items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => go(-1)}
+              disabled={active === 0}
+              className="border border-line px-4 py-1.5 text-[12px] text-ink-soft transition hover:border-ink hover:text-ink disabled:opacity-30"
+            >
+              上一张
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push(`/albums/${albums[active].id}`)}
+              className="border border-ink bg-ink px-5 py-1.5 text-[12px] text-paper transition hover:bg-transparent hover:text-ink"
+            >
+              打开专辑
+            </button>
+            <button
+              type="button"
+              onClick={() => go(1)}
+              disabled={active === lastIndex}
+              className="border border-line px-4 py-1.5 text-[12px] text-ink-soft transition hover:border-ink hover:text-ink disabled:opacity-30"
+            >
+              下一张
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
