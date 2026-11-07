@@ -25,7 +25,7 @@ mk_live_1a2b3c4d-....<43位随机串>
 ```
 
 - 如果你的调用方已经给了你令牌，跳过这一步。
-- 否则请让管理员在网站后台 **Agents** 页面签发，或执行 `npm run agent:token`。
+- 否则请让管理员在网站后台 **智能体** 页面签发（或执行 `npm run agent:token`）。
 - **令牌只显示一次**，请立刻保存到安全位置。不要写进代码仓库。
 
 ### 第二步：配置环境
@@ -34,10 +34,10 @@ mk_live_1a2b3c4d-....<43位随机串>
 cp .env.agent.example .env.agent
 ```
 
-编辑 `.env.agent`：
+编辑 `.env.agent`（`MOLLY_BASE_URL` 已经填好本站在线地址，通常只需改令牌）：
 
 ```
-MOLLY_BASE_URL=https://你的站点域名
+MOLLY_BASE_URL=https://codis.fun/mollychai-mirror
 MOLLY_AGENT_TOKEN=mk_live_xxxx.yyyy
 ```
 
@@ -105,6 +105,7 @@ Content-Type: multipart/form-data; boundary=...
   "albumExternalId": "mirror-studies",
   "albumArtist": "mollychai",
   "albumDescription": "A collection of reflections.",
+  "albumCoverUrl": "/api/v1/media/covers/xxxx.jpg",
   "albumReleaseDate": "2026-08-01",
   "genre": "ambient",
   "releaseDate": "2026-08-01",
@@ -126,13 +127,14 @@ Content-Type: multipart/form-data; boundary=...
 | `albumTitle` | 否 | ≤120 字符。提供则自动归入该专辑，不存在会自动创建 |
 | `albumExternalId` | 否 | ≤100 字符，专辑级幂等键，建议填 |
 | `albumDescription` | 否 | ≤4000 字符 |
+| `albumCoverUrl` | 否 | ≤2048 字符，专辑封面地址（专辑已存在则忽略） |
 | `albumReleaseDate` | 否 | `YYYY-MM-DD` |
 | `genre` | 否 | ≤60 字符 |
 | `trackNumber` | 否 | 0–999，专辑内曲序 |
 | `duration` | 否 | 整数秒。不传则服务端自动解析音频时长 |
 | `lyrics` | 否 | ≤20000 字符，支持 `\n` 换行 |
 | `themeColor` | 否 | `#RRGGBB` |
-| `isPublic` | 否 | 默认 `true`。设为 `false` 则不在站点展示 |
+| `isPublic` | 否 | 默认 `true`。设为 `false` 则不在站点展示；接受 `true/false` 或 `"1"/"0"` |
 
 ### 文件限制
 
