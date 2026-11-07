@@ -19,6 +19,10 @@
   /* 场景明暗：墙 / 地平线 / 台面 / 接触阴影。
      浅色下台面不做受光亮边（白底上加了反而糊），只靠"越往下越暗"成型。 */
   --wall-shade: rgb(0 0 0 / 13%);
+  --wall-top: #d6d3cc; /* paper 叠 13% 黑，即墙面最暗处 */
+  --wall-glow: transparent;
+  --wall-glow-end: 0%;
+  --wall-shade-from: 0%;
   --horizon-line: rgb(0 0 0 / 17%);
   --floor-sheen: transparent;
   --floor-bottom: rgb(0 0 0 / 23%);
@@ -37,10 +41,15 @@
   --color-accent: #85a4ff;
   --color-ember: #e08a5f;
 
-  /* 深色场景：墙更暗、台面靠地平线一侧略微受光，再向下压暗 */
-  --wall-shade: rgb(0 0 0 / 72%);
+  /* 深色场景：底色本身只有 14 的亮度，再叠黑也压不出层次，
+     所以改用"在地平线附近补光"——靠亮暗落差建立纵深，而不是继续压暗 */
+  --wall-shade: rgb(0 0 0 / 80%);
+  --wall-top: #060605; /* 与墙面顶端实测亮度对齐，避免导航下缘露出细缝 */
+  --wall-glow: rgb(255 255 255 / 8%);
+  --wall-glow-end: 16%;
+  --wall-shade-from: 22%;
   --horizon-line: rgb(255 255 255 / 16%);
-  --floor-sheen: rgb(255 255 255 / 7%);
+  --floor-sheen: rgb(255 255 255 / 12%);
   --floor-bottom: rgb(0 0 0 / 88%);
   --contact-shadow: rgb(0 0 0 / 62%);
 }
@@ -100,6 +109,14 @@ body {
   cursor: grabbing;
 }
 
+/* 页头延续墙面最暗处的颜色。
+   墙面渐变在 main 顶部（导航下缘）刚好走到最暗，若页头仍是原底色，
+   导航下方会出现一道横向断层，墙面看起来像被切掉了一截。
+   用 :has() 只在确实渲染了场景层的页面生效。 */
+body:has(.coverflow-ground) header {
+  background: var(--wall-top);
+}
+
 /* ---------- 地平线与台面 ----------
    给卡片一个"立在平面上"的支点：地平线正好对齐卡片底边，
    线以上是墙（越往上越暗），线以下是台面（越往下越暗），
@@ -125,10 +142,14 @@ body {
   right: 0;
   bottom: 100%;
   height: 150vh;
+  /* 元素高 150vh，而实际可见的墙只有 0～48%（地平线到视口顶），
+     所以补光和压暗都必须在这 48% 内完成，否则可见区域看到的永远是透明的 */
   background: linear-gradient(
     to top,
-    transparent 0%,
-    var(--wall-shade) 62%,
+    var(--wall-glow) 0%,
+    transparent var(--wall-glow-end),
+    transparent var(--wall-shade-from),
+    var(--wall-shade) 48%,
     var(--wall-shade) 100%
   );
 }
