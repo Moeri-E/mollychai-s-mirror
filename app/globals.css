@@ -150,19 +150,21 @@ body {
   /* 容器本身不能翻转：scaleY(-1) 会把 mask 一起翻掉，
      导致"贴近卡片的顶部透明、远处不透明"——看起来倒影像飘在很远的地方。
      镜像交给内部的 img 自己做。 */
+  /* 严格线性衰减：0% → 42% 之间不透明度等速下降，没有"先平一段"的平台区。
+     42% 这个终点是按单屏布局反推的：卡片高 H、下方留白 0.4H，
+     即倒影只有约 38% 落在视口内，遮罩必须在被裁掉之前就衰减到接近 0，
+     否则底部会出现一条生硬的截断线。 */
   -webkit-mask-image: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.56) 0%,
-    rgba(0, 0, 0, 0.3) 20%,
-    rgba(0, 0, 0, 0.11) 40%,
-    transparent 56%
+    rgba(0, 0, 0, 0.58) 0%,
+    rgba(0, 0, 0, 0.29) 21%,
+    rgba(0, 0, 0, 0) 42%
   );
   mask-image: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.56) 0%,
-    rgba(0, 0, 0, 0.3) 20%,
-    rgba(0, 0, 0, 0.11) 40%,
-    transparent 56%
+    rgba(0, 0, 0, 0.58) 0%,
+    rgba(0, 0, 0, 0.29) 21%,
+    rgba(0, 0, 0, 0) 42%
   );
   pointer-events: none;
   user-select: none;
