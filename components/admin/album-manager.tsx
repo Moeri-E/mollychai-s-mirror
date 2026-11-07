@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { withBasePath } from '@/lib/base-path';
+import { ConfirmButton } from '@/components/admin/confirm-button';
 import { adminFetch, readError, uploadMedia } from '@/lib/client-api';
 
 export type AlbumRow = {
@@ -117,7 +118,6 @@ export function AlbumManager({ initial }: { initial: AlbumRow[] }) {
   }
 
   async function remove(album: AlbumRow) {
-    if (!window.confirm(`删除专辑「${album.title}」？专辑内歌曲会保留为单曲。`)) return;
     setBusy(true);
     try {
       const response = await adminFetch(`/api/admin/albums/${album.id}`, { method: 'DELETE' });
@@ -297,13 +297,11 @@ export function AlbumManager({ initial }: { initial: AlbumRow[] }) {
                   >
                     编辑
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => remove(album)}
-                    className="text-[12px] text-ink-mute transition hover:text-ember"
-                  >
-                    删除
-                  </button>
+                  <ConfirmButton
+                    label="删除"
+                    onConfirm={() => remove(album)}
+                    className="text-[12px]"
+                  />
                 </td>
               </tr>
             ))}

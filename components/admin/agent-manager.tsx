@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 
+import { ConfirmButton } from '@/components/admin/confirm-button';
 import { adminFetch, readError } from '@/lib/client-api';
 import { copyText } from '@/lib/clipboard';
 
@@ -116,7 +117,6 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
   }
 
   async function revoke(tokenId: string) {
-    if (!window.confirm('吊销后无法恢复，使用该令牌的智能体会立即失去上传权限。继续？')) return;
     setBusy(true);
     try {
       await adminFetch(`/api/admin/agents?tokenId=${encodeURIComponent(tokenId)}`, {
@@ -273,13 +273,12 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
                     >
                       {token.enabled === 1 ? '停用' : '启用'}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => revoke(token.id)}
-                      className="text-[10px] tracking-[0.12em] text-ink-mute uppercase transition hover:text-ember"
-                    >
-                      吊销
-                    </button>
+                    <ConfirmButton
+                      label="吊销"
+                      confirmLabel="确认吊销"
+                      onConfirm={() => revoke(token.id)}
+                      className="text-[10px] tracking-[0.12em] uppercase"
+                    />
                   </div>
                 </li>
               ))}

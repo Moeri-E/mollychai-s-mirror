@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import { withBasePath } from '@/lib/base-path';
+import { ConfirmButton } from '@/components/admin/confirm-button';
 import { adminFetch, readError, uploadMedia } from '@/lib/client-api';
 
 export type SongRow = {
@@ -174,7 +175,6 @@ export function SongManager({
   }
 
   async function remove(song: SongRow) {
-    if (!window.confirm(`删除歌曲「${song.title}」？音频文件会一并删除。`)) return;
     setBusy(true);
     try {
       const response = await adminFetch(`/api/admin/songs/${song.id}`, { method: 'DELETE' });
@@ -402,13 +402,11 @@ export function SongManager({
                   >
                     编辑
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => remove(song)}
-                    className="text-[12px] text-ink-mute transition hover:text-ember"
-                  >
-                    删除
-                  </button>
+                  <ConfirmButton
+                    label="删除"
+                    onConfirm={() => remove(song)}
+                    className="text-[12px]"
+                  />
                 </td>
               </tr>
             ))}
