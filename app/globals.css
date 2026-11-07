@@ -35,6 +35,10 @@ html,
 body {
   background: var(--color-paper);
   color: var(--color-ink);
+  /* 横向兜底，防止 Cover Flow 侧卡把页面撑出横向滚动条。
+     注意只加在 html/body 上：卡片容器自身必须保持 overflow: visible，
+     否则卡片下方的倒影会被裁掉。 */
+  overflow-x: hidden;
 }
 
 body {
@@ -107,6 +111,8 @@ body {
   border: 0;
   padding: 0;
   background: transparent;
+  /* button 的 UA 样式可能带 overflow: hidden，会把倒影切掉 */
+  overflow: visible;
   transform-origin: 50% 50%;
   backface-visibility: hidden;
   will-change: transform, opacity;
@@ -134,9 +140,9 @@ body {
       linear-gradient(
         to bottom,
         rgb(0 0 0 / 0%) 0%,
-        rgb(0 0 0 / 0%) 60%,
-        rgb(0 0 0 / 9%) 78%,
-        rgb(0 0 0 / 24%) 100%
+        rgb(0 0 0 / 0%) 55%,
+        rgb(0 0 0 / 14%) 76%,
+        rgb(0 0 0 / 34%) 100%
       );
   }
 
@@ -145,9 +151,9 @@ body {
       linear-gradient(
         to bottom,
         rgb(0 0 0 / 0%) 0%,
-        rgb(0 0 0 / 0%) 60%,
-        rgb(0 0 0 / 22%) 78%,
-        rgb(0 0 0 / 45%) 100%
+        rgb(0 0 0 / 0%) 55%,
+        rgb(0 0 0 / 30%) 76%,
+        rgb(0 0 0 / 58%) 100%
       );
   }
 }

@@ -115,10 +115,12 @@ export function CoverFlow({ albums, initialIndex }: Props) {
   const perspective = cardSize * 2.4;
 
   return (
-    <div className="relative overflow-x-clip">
+    // 注意：不要在这里用 overflow-x-clip / overflow-hidden，
+    // 那会把卡片下方的倒影一起裁掉（垂直方向也会被限制）
+    <div className="relative">
       <div
         className="coverflow-stage"
-        style={{ height: cardSize * 1.5 }}
+        style={{ height: cardSize * 1.6 }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={finishDrag}
