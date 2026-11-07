@@ -86,7 +86,7 @@ body {
     'Segoe Script',
     cursive;
   font-weight: 400;
-  font-size: clamp(34px, 4.6vw, 62px);
+  font-size: clamp(40px, 5.6vw, 82px);
   line-height: 1.12;
   letter-spacing: 0.01em;
   color: var(--color-ink);
@@ -197,17 +197,16 @@ body:has(.coverflow-ground) header {
 .coverflow-floor {
   position: absolute;
   inset: 0;
+  /* 终点由 --floor-h 给出 = 地平线到视口底的实测距离（组件内计算）。
+     不能用固定像素：窗口高时台面会先变暗再被裁掉，底部出现一条雾状暗带；
+     窗口矮时又会在中间就压到最暗，留下一块平坦的深色矩形。 */
   background: linear-gradient(
     to bottom,
     var(--floor-sheen) 0,
     color-mix(in srgb, var(--floor-sheen), transparent 70%) 12px,
     transparent 58px,
-    var(--floor-bottom) 190px
+    var(--floor-bottom) var(--floor-h, 190px)
   );
-  /* 190px 之后渐变就到头了，若地平线位置偏高（矮视口），下面会留下一大片
-     均匀的暗色块。用遮罩让台面在 300px 内收干净，避免出现"灰色矩形"。 */
-  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 190px, transparent 300px);
-  mask-image: linear-gradient(to bottom, #000 0, #000 190px, transparent 300px);
 }
 
 /* 接触阴影：卡片底边那一小团紧贴的投影，是"立住"最关键的一条线索。

@@ -29,6 +29,8 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [cardSize, setCardSize] = useState(320);
+  /** 容器实测高度，用于算台面渐变该在哪收尾 */
+  const [boxH, setBoxH] = useState(0);
 
   const stageRef = useRef<HTMLDivElement | null>(null);
   const boxRef = useRef<HTMLDivElement | null>(null);
@@ -46,7 +48,8 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
   // 卡片尺寸自适应。
   // 沉浸模式下按「容器实际剩余高度」反算（容器 = 一屏减去导航与主标题），
   // 所以标题占多少、视口多高，都不需要在这里另开参数。
-  // 除数 1.8 是为了让 (容器高 - 卡宽) / 2 正好容得下 0.42 倍卡宽的倒影。
+  // 除数 1.7：卡片上方留 0.16 倍卡宽、下方留 0.54 倍卡宽（倒影约需 0.42 倍），
+  // 1 + 0.16 + 0.54 = 1.7。比居中时更贴近标题，也不会让倒影没地方放。
   useEffect(() => {
     const calc = () => {
       const vw = window.innerWidth;
@@ -55,10 +58,11 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
         minimal && box && box.clientHeight > 8
           ? box.clientHeight
           : window.innerHeight - NAV_HEIGHT;
+      if (minimal && box) setBoxH(box.clientHeight);
       // 窄屏（手机）用更大的宽度占比，否则卡片只有屏宽的一半不到
       const widthRatio = vw < 640 ? 0.62 : 0.34;
       const byWidth = Math.min(vw * widthRatio, minimal ? 520 : 400);
-      const byHeight = minimal ? availH / 1.8 : (window.innerHeight - 300) / 1.45;
+      const byHeight = minimal ? availH / 1.7 : (window.innerHeight - 300) / 1.45;
       setCardSize(Math.max(180, Math.min(byWidth, byHeight)));
     };
     calc();
@@ -170,6 +174,15 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
   // 普通模式：舞台额外留 45% 给倒影，卡片相应上移到光学位
   const stageHeight = minimal ? cardSize : cardSize * 1.45;
   const topPercent = (cardSize / 2 / stageHeight) * 100;
+  // 沉浸模式不再垂直居中：基准偏移取 0.16 倍卡宽，让卡片贴近标题；
+  // 若卡片被宽度限制（大屏、手机），容器还有富余高度，这部分上下均分，
+  // 否则余量会全堆在底部，看起来像悬在上半页。
+  const slack = Math.max(0, boxH - cardSize * 1.7);
+  const stageTop = minimal ? Math.round(cardSize * 0.16 + slack * 0.5) : 0;
+  // 台面渐变要在视口底收尾，长度按实测剩余空间算
+  const floorHeight = minimal
+    ? Math.max(140, Math.round(boxH - stageTop - cardSize))
+    : Math.round(cardSize * 0.55);
 
   return (
     // 注意：不要在这里用 overflow-x-clip / overflow-hidden，
@@ -179,12 +192,12 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
     // 两边一起塌到最小尺寸。
     <div
       ref={boxRef}
-      className={minimal ? 'absolute inset-0 flex items-center' : 'relative'}
+      className={minimal ? 'absolute inset-0 flex items-start' : 'relative'}
     >
       <div
         ref={stageRef}
         className="coverflow-stage w-full"
-        style={{ height: stageHeight }}
+        style={{ height: stageHeight, marginTop: stageTop }}
         onPointerDown={onPointerDown}
         role="group"
         aria-roledescription="carousel"
@@ -192,7 +205,11 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
       >
         {/* 地平线 + 墙 + 台面：卡片的底边正好落在地平线上，
             看起来像立在台面上，倒影投在同一张台面上 */}
-        <div className="coverflow-ground" style={{ top: `${topPercent * 2}%` }} aria-hidden>
+        <div
+          className="coverflow-ground"
+          style={{ top: `${topPercent * 2}%`, ['--floor-h' as string]: `${floorHeight}px` }}
+          aria-hidden
+        >
           <span className="coverflow-floor" />
         </div>
 
