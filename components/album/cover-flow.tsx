@@ -23,13 +23,13 @@ const SNAP_RATIO = 0.24;
 const NAV_HEIGHT = 68;
 
 /**
- * 四种状态：
- *   idle         正常浏览
- *   open         专辑已翻开，其余卡片散开
- *   closing-out  收起第一拍：整页向左滑出，其余卡片同时归位
- *   closing-in   收起第二拍：中心卡已不可见，瞬移回原位并合上封皮，随后淡入
+ * 三种状态：
+ *   idle    正常浏览
+ *   open    专辑已翻开，其余卡片散开
+ *   closing 收起 = 打开的逆放：封皮合上、卡片从放大位缩回 cover flow 原位，
+ *           其余卡片同时飞回。唱机被合上的封皮自然遮住，完成后回到 idle 卸载
  */
-type Phase = 'idle' | 'open' | 'closing-out' | 'closing-in';
+type Phase = 'idle' | 'open' | 'closing';
 
 export function CoverFlow({ albums, initialIndex, title }: Props) {
   const lastIndex = Math.max(albums.length - 1, 0);
@@ -137,16 +137,15 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
   const closeAlbum = useCallback(() => {
     if (phase !== 'open') return;
     pause();
-    setPhase('closing-out');
-    // 第一拍：整页滑出、其余卡片归位
-    timers.current.push(window.setTimeout(() => setPhase('closing-in'), 300));
-    // 第二拍：此时中心卡已滑出屏幕，瞬移回原位并合上封皮（都不可见）；
-    // 340ms 就回到 idle，让它立刻淡入——拖到 800ms 之后中间会空一格太久
+    setPageDx(0);
+    setPhase('closing');
+    // 封皮合上 + 中心卡缩回 + 其余卡片飞回，三者同步（~600ms）；
+    // 完成后回到 idle，唱机此时已被封皮遮住，卸载不可见
     timers.current.push(
       window.setTimeout(() => {
         setPhase('idle');
         setOpenIndex(null);
-      }, 340),
+      }, 660),
     );
   }, [phase, pause]);
 
@@ -352,8 +351,7 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
         ref={stageRef}
         className="coverflow-stage w-full"
         style={{ height: stageHeight, marginTop: titleBand }}
-        data-open={isOpen || phase === 'closing-out' ? '1' : '0'}
-        data-snap={phase === 'closing-in' ? '1' : '0'}
+        data-open={isOpen ? '1' : '0'}
         role="group"
         aria-roledescription="carousel"
         aria-label="专辑滑动展示"
@@ -405,18 +403,12 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
             zIndex = 10;
           } else if (isOpenedCard) {
             zIndex = 200;
-            if (phase === 'closing-out') {
-              transform =
-                `translate3d(${-viewportW * 0.78 + pageDx + openShift}px, -22px, 220px) ` +
-                `perspective(${perspective}px) ` +
-                `rotateY(16deg) scale(${openScale * 0.99})`;
-              opacity = 0;
-              transition = 'transform 560ms cubic-bezier(0.4, 0, 0.2, 1), opacity 460ms ease';
-            } else if (phase === 'closing-in') {
-              // 已经滑出屏幕：瞬移回原位但保持透明，随后（phase = idle）淡入
+            if (phase === 'closing') {
+              // 收起 = 打开的逆放：从放大居中位缩回 cover flow 原位，
+              // 封皮同步合上（由 data-flap 驱动），唱机被遮住后于 idle 卸载
               transform = baseTransform;
-              opacity = 0;
-              transition = 'none';
+              opacity = 1;
+              transition = 'transform 660ms cubic-bezier(0.22, 0.82, 0.24, 1)';
             } else {
               transform =
                 `translate3d(${pageDx + openShift}px, -8px, 120px) ` +
@@ -434,6 +426,7 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
               key={album.id}
               className="cover-card"
               data-opened={showDeck ? '1' : '0'}
+              data-flap={isOpen ? 'open' : 'closed'}
               onClick={() => handleCardClick(index)}
               style={{
                 ['--card' as string]: `${cardSize}px`,
@@ -456,7 +449,20 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
               <span className="sleeve">
                 {showDeck && <AlbumDeck album={album} />}
 
-                <span className="sleeve-flap">
+                <span
+                  className="sleeve-flap"
+                  style={
+                    isOpen
+                      ? {
+                          transform: 'rotateY(-174deg) translateZ(-26px)',
+                          transition: 'transform 1.3s cubic-bezier(0.3, 0.6, 0.3, 1) 160ms',
+                        }
+                      : {
+                          transform: 'rotateY(0deg)',
+                          transition: 'transform 600ms cubic-bezier(0.4, 0, 0.2, 1)',
+                        }
+                  }
+                >
                   <span className="sleeve-face sleeve-face--front">
                     {album.coverUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element

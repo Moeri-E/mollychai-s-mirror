@@ -991,26 +991,22 @@ input[type='range'].range-thin::-moz-range-thumb {
 }
 
 /* ---------- 可以翻开的封皮 ---------- */
+/* 封皮的 transform / transition 由 cover-flow 的内联 style 驱动：
+   打开 1.3s 慢翻、收起 600ms 干脆收回。这里只保留布局与光标。
+   （曾用 [data-flap] 属性选择器驱动，但 transition 与 transform 在
+   属性切换的同一样式重算里同时变化，Chromium 不启动过渡——封皮瞬间跳变。） */
 .sleeve-flap {
   position: absolute;
   inset: 0;
   display: block;
   transform-style: preserve-3d;
   transform-origin: left center;
-  transform: rotateY(0deg);
-  transition: transform 1.3s cubic-bezier(0.3, 0.6, 0.3, 1) 160ms;
   z-index: 6;
   cursor: pointer;
 }
 
-.coverflow-stage[data-open='1'] .cover-card[data-opened='1'] .sleeve-flap {
-  transform: rotateY(-174deg) translateZ(-26px);
+.cover-card[data-flap='open'] .sleeve-flap {
   cursor: default;
-}
-
-/* 收起时让封皮"啪"地合上：此刻中心卡不可见，看不出是瞬间合的 */
-.coverflow-stage[data-snap='1'] .sleeve-flap {
-  transition: none !important;
 }
 
 .sleeve-face {
@@ -1077,7 +1073,7 @@ input[type='range'].range-thin::-moz-range-thumb {
 }
 
 /* 打开时翻动中的封皮微微透光，能隐约看到后面的唱机 */
-.coverflow-stage[data-open='1'] .cover-card[data-opened='1'] .sleeve-face--front {
+.cover-card[data-flap='open'] .sleeve-face--front {
   opacity: 0.93;
   transition: opacity 350ms ease;
 }
@@ -1089,13 +1085,10 @@ input[type='range'].range-thin::-moz-range-thumb {
   transition: opacity 300ms ease;
 }
 
-/* 手机上放不下左右两页：封皮翻过去之后淡出，只留唱机 */
+/* 手机上放不下左右两页：封皮翻过去之后淡出，只留唱机。
+   opacity 由这里驱动（transform/transition 已改内联）；手机端待补 opacity 过渡 */
 @media (max-width: 720px) {
-  .coverflow-stage[data-open='1'] .cover-card[data-opened='1'] .sleeve-flap {
-    transform: rotateY(-176deg) translateZ(-30px);
+  .cover-card[data-flap='open'] .sleeve-flap {
     opacity: 0;
-    transition:
-      transform 1.05s cubic-bezier(0.3, 0.85, 0.2, 1) 180ms,
-      opacity 550ms ease 700ms;
   }
 }
