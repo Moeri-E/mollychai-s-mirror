@@ -620,6 +620,7 @@ input[type='range'].range-thin::-moz-range-thumb {
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.42);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+  z-index: 2;
 }
 
 /* 中心孔 */
@@ -634,6 +635,24 @@ input[type='range'].range-thin::-moz-range-thumb {
   border-radius: 50%;
   background: #080808;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+  z-index: 2;
+}
+
+/* 中心标签：封面图圆形裁切，替代原来的纯色块。
+   直径 38% ≈ 真实黑胶中心标签的比例，大到能看清封面图案。
+   跟着唱片一起转。无封面图时不渲染，露出橙色。 */
+.sleeve-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 38%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45);
 }
 
 /* 固定不转的反光：唱片转起来时光感才对 */

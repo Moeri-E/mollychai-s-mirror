@@ -7,6 +7,7 @@ import {
   usePlayerActions,
   usePlayerState,
 } from '@/components/player/player-provider';
+import { withBasePath } from '@/lib/base-path';
 import type { AlbumWithTracks } from '@/lib/catalog';
 
 type Props = {
@@ -172,9 +173,16 @@ export function AlbumDeck({ album }: Props) {
         onPointerCancel={onPlatterCancel}
         role="presentation"
       >
-        <span className={`sleeve-vinyl-wrap is-${anim}`} ref={vinylRef}>
-          <span className="sleeve-vinyl" />
-        </span>
+          <span className={`sleeve-vinyl-wrap is-${anim}`} ref={vinylRef}>
+            <span className="sleeve-vinyl">
+              {album.coverUrl && (
+                <span
+                  className="sleeve-label"
+                  style={{ backgroundImage: `url(${withBasePath(album.coverUrl)})` }}
+                />
+              )}
+            </span>
+          </span>
       </span>
 
       <span className="sleeve-armrest" aria-hidden />
