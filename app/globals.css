@@ -27,6 +27,18 @@
   --floor-sheen: transparent;
   --floor-bottom: rgb(0 0 0 / 23%);
   --contact-shadow: rgb(0 0 0 / 26%);
+
+  /* 唱机机身：浅色是阳极氧化铝，深色是枪灰拉丝。
+     面板内部的文字色走 --deck-ink，不能用 --color-ink——机身永远是深色系，
+     切到浅色主题时正文色会翻成深色，在那块金属上会看不见。 */
+  --deck-grad: linear-gradient(180deg, #ece5d7 0%, #d9d0c0 55%, #c6bba8 100%);
+  --deck-ink: #2a241d;
+  --deck-ink-mute: #574f45;
+  --deck-line: rgb(0 0 0 / 16%);
+  --deck-bevel: rgb(255 255 255 / 75%);
+  --deck-press: rgb(0 0 0 / 14%);
+  /* 颗粒：让拉丝不显得像纯渐变 */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 /* 深色模式：覆盖 @theme 生成的 CSS 变量（属性选择器优先级高于 :root） */
@@ -52,6 +64,13 @@
   --floor-sheen: rgb(255 255 255 / 12%);
   --floor-bottom: rgb(0 0 0 / 88%);
   --contact-shadow: rgb(0 0 0 / 34%);
+
+  --deck-grad: linear-gradient(180deg, #2b2620 0%, #1b1714 56%, #131110 100%);
+  --deck-ink: #efe7da;
+  --deck-ink-mute: #a79d90;
+  --deck-line: rgb(255 255 255 / 13%);
+  --deck-bevel: rgb(255 255 255 / 18%);
+  --deck-press: rgb(0 0 0 / 45%);
 }
 
 html,
@@ -242,9 +261,13 @@ body:has(.coverflow-ground) header[data-site-nav] {
   /* button 的 UA 样式可能带 overflow: hidden，会把倒影切掉 */
   overflow: visible;
   transform-origin: 50% 50%;
-  backface-visibility: hidden;
+  /* 必须有 preserve-3d：封皮要绕左边缘翻起来。
+     这里不能再加 backface-visibility: hidden——它会把这个 3D 上下文压平，
+     封套的背面会变成一块正面的镜像图。 */
+  transform-style: preserve-3d;
   will-change: transform, opacity;
   -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
 }
 
 .cover-frame {
@@ -440,4 +463,629 @@ input[type='range'].range-thin::-moz-range-thumb {
 ::selection {
   background: var(--color-ink);
   color: var(--color-paper);
+}
+
+/* ==========================================================================
+   打开专辑：唱片套 + 黑胶唱机
+   --------------------------------------------------------------------------
+   尺寸全部相对卡宽：.sleeve 的 font-size = 卡宽 × 0.0333，
+   于是 1em ≈ 卡宽 300 时的 10px，卡片随视口变化时整个唱机等比缩放。
+   ========================================================================== */
+.sleeve {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  font-size: calc(var(--card, 300px) * 0.0333);
+  transform-style: preserve-3d;
+}
+
+/* ---------- 内胆：黑盒子 ---------- */
+.sleeve-interior {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 4px;
+  overflow: hidden;
+  transform: translateZ(-2px);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0) 38%),
+    radial-gradient(120% 90% at 50% 108%, #262420 0%, #100e0c 72%),
+    #100e0c;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 2.6em 6em rgba(0, 0, 0, 0.85),
+    0 3em 7em rgba(0, 0, 0, 0.55);
+}
+
+/* ---------- 转盘 ---------- */
+.sleeve-platter {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 72%;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.sleeve-platter:active {
+  cursor: grabbing;
+}
+
+/* 盘面：比唱片大一圈、亮一档，唱片的黑边才有轮廓 */
+.sleeve-platter::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 78%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 46% 38%, #322c25 0%, #241f1a 46%, #17130f 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1em 2.4em rgba(0, 0, 0, 0.55),
+    0 1.2em 3em rgba(0, 0, 0, 0.55);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.sleeve-vinyl-wrap {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 70%;
+  aspect-ratio: 1;
+  transition:
+    transform 440ms cubic-bezier(0.22, 0.82, 0.24, 1),
+    opacity 300ms ease;
+  will-change: transform;
+}
+
+/* 拖拽跟手 / 飞出飞入：类名驱动，避免和 inline transform 打架 */
+.sleeve-vinyl-wrap.is-out-left {
+  transform: translateX(-132%) rotate(-15deg);
+  opacity: 0;
+  transition: transform 260ms ease-in, opacity 260ms ease-in;
+}
+.sleeve-vinyl-wrap.is-out-right {
+  transform: translateX(132%) rotate(15deg);
+  opacity: 0;
+  transition: transform 260ms ease-in, opacity 260ms ease-in;
+}
+.sleeve-vinyl-wrap.is-in-right {
+  transform: translateX(132%) rotate(15deg);
+  opacity: 0;
+  transition: none;
+}
+.sleeve-vinyl-wrap.is-in-left {
+  transform: translateX(-132%) rotate(-15deg);
+  opacity: 0;
+  transition: none;
+}
+
+.sleeve-vinyl {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 50%;
+  background:
+    radial-gradient(
+      circle at 50% 50%,
+      var(--accent, #c4653a) 0 16.5%,
+      #0b0b0b 16.9% 18.4%,
+      #171717 18.6% 19.1%,
+      #0b0b0b 19.3% 25.5%,
+      #191919 25.7% 26.2%,
+      #0b0b0b 26.4% 33.5%,
+      #181818 33.7% 34.2%,
+      #0b0b0b 34.4% 41.5%,
+      #171717 41.7% 42.2%,
+      #0b0b0b 42.4% 100%
+    );
+  box-shadow:
+    inset 0 0 2.6em rgba(0, 0, 0, 0.9),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 0 2.2em rgba(0, 0, 0, 0.55),
+    0 1.6em 3.6em rgba(0, 0, 0, 0.66);
+  animation: sleeve-spin 7s linear infinite;
+  animation-play-state: paused;
+}
+
+/* 标签上的一道印刷暗点：唱片是对称的，不加这个看不出在转 */
+.sleeve-vinyl::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  width: 4%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.42);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* 中心孔 */
+.sleeve-vinyl::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3.4%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #080808;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+/* 固定不转的反光：唱片转起来时光感才对 */
+.sleeve-vinyl-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 205deg,
+    rgba(255, 255, 255, 0.15) 0deg,
+    rgba(255, 255, 255, 0) 26deg,
+    rgba(255, 255, 255, 0) 150deg,
+    rgba(255, 255, 255, 0.09) 178deg,
+    rgba(255, 255, 255, 0) 205deg,
+    rgba(255, 255, 255, 0) 330deg,
+    rgba(255, 255, 255, 0.05) 350deg,
+    rgba(255, 255, 255, 0) 360deg
+  );
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.sleeve-interior[data-playing='1'] .sleeve-vinyl {
+  animation-play-state: running;
+}
+
+@keyframes sleeve-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- 唱臂与卡扣 ----------
+   卡扣位置不是随手摆的：按「唱臂抬起后针头的落点」对齐——
+   针头中心在卡宽 92.3%、下沿在 50.3% 处，托杯就放在那里，
+   纵向压进去约 1%，读起来才是"针头搁进卡槽"而不是悬在上方。 */
+.sleeve-armrest {
+  position: absolute;
+  left: 92.3%;
+  top: 49.6%;
+  width: 1.4em;
+  height: 1.3em;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, #9a9285 0%, #5c564e 78%, #3a352f 100%);
+  background-size: 0.3em 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 4;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.7));
+}
+
+.sleeve-armrest::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 0.5em;
+  border-radius: 2px 2px 1px 1px;
+  background: linear-gradient(to bottom, #c6bfb2 0%, #8f877b 55%, #5a544c 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+.sleeve-armrest::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0.1em;
+  width: 0.5em;
+  height: 0.4em;
+  transform: translateX(-50%);
+  border-radius: 1px;
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.sleeve-arm {
+  position: absolute;
+  right: 7%;
+  top: 4%;
+  width: 3em;
+  height: 46%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  transform-origin: 50% 0.6em;
+  transform: rotate(var(--arm, 26deg));
+  transition: transform 620ms cubic-bezier(0.3, 0.9, 0.25, 1);
+  cursor: pointer;
+  z-index: 5;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sleeve-arm-rod {
+  position: absolute;
+  left: 50%;
+  top: 0.6em;
+  width: 0.2em;
+  height: calc(100% - 1.2em);
+  transform: translateX(-50%);
+  border-radius: 2px;
+  background: linear-gradient(
+    to bottom,
+    rgba(214, 206, 193, 0.95),
+    rgba(122, 114, 104, 0.75) 62%,
+    rgba(178, 170, 158, 0.9)
+  );
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.65);
+  transition:
+    box-shadow 350ms ease,
+    filter 350ms ease;
+}
+
+.sleeve-arm-pivot {
+  position: absolute;
+  left: 50%;
+  top: -0.4em;
+  width: 1.6em;
+  height: 1.6em;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle at 34% 28%, #e6dfd3, #79726a 68%, #4b463f);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+.sleeve-arm-head {
+  position: absolute;
+  left: 50%;
+  bottom: -0.2em;
+  width: 1.1em;
+  height: 1.6em;
+  transform: translateX(-50%) rotate(9deg);
+  border-radius: 2px 2px 3px 3px;
+  background: linear-gradient(to bottom, #c8c0b3, #514c46);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+}
+
+/* 暂停 = 抬起并摆到卡扣上：先亮、阴影变大，再摆出去 */
+.sleeve-interior[data-playing='0'] .sleeve-arm {
+  --arm: -6deg;
+  transform: rotate(var(--arm)) translateY(-0.25em) scale(1.015);
+  transition: transform 620ms cubic-bezier(0.3, 0.9, 0.25, 1) 100ms;
+}
+
+.sleeve-interior[data-playing='0'] .sleeve-arm-rod {
+  box-shadow: 0 1.2em 2.2em rgba(0, 0, 0, 0.85);
+  filter: brightness(1.18);
+}
+
+.sleeve-interior[data-playing='0'] .sleeve-arm-head {
+  box-shadow: 0 1em 1.6em rgba(0, 0, 0, 0.8);
+}
+
+.sleeve-interior[data-playing='1'] .sleeve-arm {
+  --arm: 26deg;
+  transition: transform 550ms cubic-bezier(0.3, 0.9, 0.25, 1) 160ms;
+}
+
+.sleeve-interior[data-playing='1'] .sleeve-arm-rod {
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.65);
+  filter: brightness(1);
+}
+
+/* ---------- 机身面板：拉丝金属 ---------- */
+.sleeve-deck {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 36%;
+  padding: 4.2% 6% 4.2%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-radius: 0 0 4px 4px;
+  z-index: 3;
+  color: var(--deck-ink);
+  background-color: #191510;
+  background-image:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0) 14%, rgba(0, 0, 0, 0.36) 100%),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.03) 0 1px,
+      rgba(0, 0, 0, 0.045) 1px 2px,
+      rgba(255, 255, 255, 0.012) 2px 3px
+    ),
+    var(--deck-grad);
+  box-shadow:
+    inset 0 1px 0 var(--deck-bevel),
+    inset 0 -1.8em 2.8em var(--deck-press),
+    0 -1.2em 2.6em rgba(0, 0, 0, 0.6);
+}
+
+/* 颗粒：让拉丝不显得像纯渐变 */
+.sleeve-deck::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--grain);
+  opacity: 0.22;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* 分模线 */
+.sleeve-deck::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--deck-bevel) 18%,
+    var(--deck-bevel) 82%,
+    transparent
+  );
+  opacity: 0.8;
+}
+
+.sleeve-readout {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1em;
+}
+
+.sleeve-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.6em;
+  font-size: 0.9em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--deck-ink-mute);
+}
+
+.sleeve-idx {
+  font-variant-numeric: tabular-nums;
+}
+
+.sleeve-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sleeve-state i {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: var(--accent, #c4653a);
+  box-shadow: 0 0 6px var(--accent, #c4653a);
+  transition:
+    background 300ms,
+    box-shadow 300ms,
+    opacity 300ms;
+  flex: none;
+}
+
+.sleeve-interior[data-playing='0'] .sleeve-state i {
+  background: var(--deck-ink-mute);
+  box-shadow: none;
+  opacity: 0.5;
+}
+
+.sleeve-interior[data-playing='1'] .sleeve-state i {
+  animation: sleeve-blink 1.8s ease-in-out infinite;
+}
+
+@keyframes sleeve-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.sleeve-title {
+  font-family: var(--font-serif-display);
+  font-size: 1.7em;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  color: var(--deck-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sleeve-sub {
+  font-size: 0.95em;
+  letter-spacing: 0.08em;
+  color: var(--deck-ink-mute);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sleeve-bar-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.17em;
+}
+
+.sleeve-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 1.2em;
+  cursor: pointer;
+}
+
+.sleeve-bar-track {
+  position: relative;
+  width: 100%;
+  height: 0.2em;
+  background: var(--deck-line);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.sleeve-bar-fill {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-origin: left center;
+  background: var(--accent, #c4653a);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent, #c4653a), transparent 45%);
+}
+
+.sleeve-times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9em;
+  letter-spacing: 0.1em;
+  color: var(--deck-ink-mute);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 可以翻开的封皮 ---------- */
+.sleeve-flap {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-style: preserve-3d;
+  transform-origin: left center;
+  transform: rotateY(0deg);
+  transition: transform 1.3s cubic-bezier(0.3, 0.6, 0.3, 1) 160ms;
+  z-index: 6;
+  cursor: pointer;
+}
+
+.coverflow-stage[data-open='1'] .cover-card[data-opened='1'] .sleeve-flap {
+  transform: rotateY(-174deg) translateZ(-26px);
+  cursor: default;
+}
+
+/* 收起时让封皮"啪"地合上：此刻中心卡不可见，看不出是瞬间合的 */
+.coverflow-stage[data-snap='1'] .sleeve-flap {
+  transition: none !important;
+}
+
+.sleeve-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-ink), transparent 90%);
+  background: var(--color-paper-deep);
+  box-shadow:
+    0 1px 1px rgb(0 0 0 / 6%),
+    0 5px 12px rgb(0 0 0 / 10%),
+    0 14px 26px rgb(0 0 0 / 12%);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: rotateY(0deg) translateZ(0.4px);
+}
+
+.sleeve-face--back {
+  transform: rotateY(180deg) translateZ(0.4px);
+  background: #0c0a08;
+  box-shadow: inset 0 0 6em rgba(0, 0, 0, 0.85);
+}
+
+.sleeve-face img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 背面：同一张图镜像压暗，像唱片套内页 */
+.sleeve-face--back img {
+  transform: scaleX(-1);
+  opacity: 0.38;
+  filter: brightness(0.52) saturate(0.7);
+}
+
+/* 折痕：贴着书脊的一侧有一道反光 */
+.sleeve-face--back::before {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(
+    to bottom,
+    transparent 4%,
+    rgba(255, 255, 255, 0.22) 30%,
+    rgba(255, 255, 255, 0.1) 72%,
+    transparent 96%
+  );
+}
+
+/* 远端压暗：纸板向透视线里退 */
+.sleeve-face--back::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(to left, rgba(0, 0, 0, 0) 8%, rgba(0, 0, 0, 0.28) 62%, rgba(0, 0, 0, 0.6) 100%),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0) 24%, rgba(0, 0, 0, 0.3) 100%);
+}
+
+/* 打开时翻动中的封皮微微透光，能隐约看到后面的唱机 */
+.coverflow-stage[data-open='1'] .cover-card[data-opened='1'] .sleeve-face--front {
+  opacity: 0.93;
+  transition: opacity 350ms ease;
+}
+
+/* 打开后卡片立在原地：倒影和接触阴影收掉，否则会压在唱机下面 */
+.cover-card[data-opened='1'] .cover-reflection,
+.cover-card[data-opened='1'] .cover-contact {
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+/* 手机上放不下左右两页：封皮翻过去之后淡出，只留唱机 */
+@media (max-width: 720px) {
+  .coverflow-stage[data-open='1'] .cover-card[data-opened='1'] .sleeve-flap {
+    transform: rotateY(-176deg) translateZ(-30px);
+    opacity: 0;
+    transition:
+      transform 1.05s cubic-bezier(0.3, 0.85, 0.2, 1) 180ms,
+      opacity 550ms ease 700ms;
+  }
 }

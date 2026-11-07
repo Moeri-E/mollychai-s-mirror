@@ -1,6 +1,6 @@
 'use client';
 
-import { Disc3, Home, Info, Music } from 'lucide-react';
+import { Home, Info, Music } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -8,7 +8,6 @@ import { ThemeToggle } from '@/components/theme-toggle';
 
 const LINKS = [
   { href: '/', label: '首页', Icon: Home },
-  { href: '/albums', label: '专辑', Icon: Disc3 },
   { href: '/singles', label: '单曲', Icon: Music },
   { href: '/about', label: '关于', Icon: Info },
 ];

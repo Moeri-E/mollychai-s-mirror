@@ -30,6 +30,7 @@ type PlayerState = {
 type PlayerActions = {
   playTrack: (track: Track, queue?: Track[]) => void;
   toggle: () => void;
+  pause: () => void;
   next: () => void;
   prev: () => void;
   seek: (seconds: number) => void;
@@ -221,6 +222,14 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     }
   }, [startTrack]);
 
+  // 单独的暂停：首页收起专辑时要用，但那边不想订阅 state
+  // （订阅了就会跟着 timeupdate 每秒重渲染四次整个 Cover Flow）
+  const pause = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio || audio.paused) return;
+    audio.pause();
+  }, []);
+
   const next = useCallback(() => {
     const track = pickNext(1, true);
     if (track) startTrack(track);
@@ -322,6 +331,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     () => ({
       playTrack,
       toggle,
+      pause,
       next,
       prev,
       seek,
@@ -336,6 +346,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     [
       playTrack,
       toggle,
+      pause,
       next,
       prev,
       seek,

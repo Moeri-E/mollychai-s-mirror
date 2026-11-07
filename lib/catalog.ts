@@ -36,6 +36,35 @@ export function listPublicAlbums(): AlbumCard[] {
     .all() as AlbumCard[];
 }
 
+export type AlbumWithTracks = AlbumCard & { tracks: Track[] };
+
+/**
+ * 首页用：一次把专辑和它的曲目都取出来。
+ * 打开专辑时要立刻能播，不能等一次网络请求——那个瞬间正好是翻盖动画，
+ * 晚到一步就会出现「盖子开了但没声音」。
+ */
+export function listPublicAlbumsWithTracks(): AlbumWithTracks[] {
+  const albums = listPublicAlbums();
+  const stmt = getDb().prepare(
+    `SELECT s.id, s.title, s.artist, s.duration, s.cover_url AS coverUrl, s.album_id AS albumId
+     FROM songs s
+     WHERE s.album_id = ? AND s.is_public = 1
+     ORDER BY s.track_number ASC, s.created_at ASC`,
+  );
+
+  return albums.map((album) => ({
+    ...album,
+    tracks: (stmt.all(album.id) as {
+      id: string;
+      title: string;
+      artist: string;
+      duration: number;
+      coverUrl: string | null;
+      albumId: string;
+    }[]).map((song) => toTrack({ ...song, albumTitle: album.title })),
+  }));
+}
+
 export function getPublicAlbum(id: string): (AlbumCard & { tracks: AlbumTrack[] }) | null {
   const db = getDb();
   const album = db

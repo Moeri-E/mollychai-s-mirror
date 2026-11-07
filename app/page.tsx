@@ -1,12 +1,12 @@
 import Link from 'next/link';
 
 import { CoverFlow } from '@/components/album/cover-flow';
-import { listPublicAlbums } from '@/lib/catalog';
+import { listPublicAlbumsWithTracks } from '@/lib/catalog';
 
 export const dynamic = 'force-dynamic';
 
 export default function HomePage() {
-  const albums = listPublicAlbums();
+  const albums = listPublicAlbumsWithTracks();
 
   if (albums.length === 0) {
     return (
@@ -31,7 +31,6 @@ export default function HomePage() {
       <div className="relative min-h-0 flex-1">
         <CoverFlow
           albums={albums}
-          minimal
           title={<h1 className="wordmark">mollychai&rsquo;s mirror</h1>}
         />
       </div>

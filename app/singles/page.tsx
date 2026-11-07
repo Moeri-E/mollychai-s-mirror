@@ -15,7 +15,7 @@ export default function SinglesPage() {
         <p className="text-[11px] tracking-[0.22em] text-ink-mute">单曲</p>
         <h1 className="font-display mt-3 text-4xl text-ink sm:text-5xl">每一首歌。</h1>
         <p className="mt-4 max-w-lg text-sm leading-relaxed text-ink-soft">
-          不属于任何专辑，也值得被记住的碎片。
+          全部曲目，按上传时间倒序。想听整张专辑，回首页翻开封面。
         </p>
       </header>
 
