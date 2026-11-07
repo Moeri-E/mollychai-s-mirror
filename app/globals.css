@@ -18,11 +18,11 @@
   color-scheme: light;
   /* 场景明暗：墙 / 地平线 / 台面 / 接触阴影。
      浅色下台面不做受光亮边（白底上加了反而糊），只靠"越往下越暗"成型。 */
-  --wall-shade: rgb(0 0 0 / 9%);
-  --horizon-line: rgb(0 0 0 / 13%);
+  --wall-shade: rgb(0 0 0 / 13%);
+  --horizon-line: rgb(0 0 0 / 17%);
   --floor-sheen: transparent;
-  --floor-bottom: rgb(0 0 0 / 15%);
-  --contact-shadow: rgb(0 0 0 / 34%);
+  --floor-bottom: rgb(0 0 0 / 23%);
+  --contact-shadow: rgb(0 0 0 / 42%);
 }
 
 /* 深色模式：覆盖 @theme 生成的 CSS 变量（属性选择器优先级高于 :root） */
@@ -38,11 +38,11 @@
   --color-ember: #e08a5f;
 
   /* 深色场景：墙更暗、台面靠地平线一侧略微受光，再向下压暗 */
-  --wall-shade: rgb(0 0 0 / 62%);
-  --horizon-line: rgb(255 255 255 / 12%);
+  --wall-shade: rgb(0 0 0 / 72%);
+  --horizon-line: rgb(255 255 255 / 16%);
   --floor-sheen: rgb(255 255 255 / 7%);
-  --floor-bottom: rgb(0 0 0 / 72%);
-  --contact-shadow: rgb(0 0 0 / 55%);
+  --floor-bottom: rgb(0 0 0 / 88%);
+  --contact-shadow: rgb(0 0 0 / 62%);
 }
 
 html,
