@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { PlayAlbumButton } from '@/components/album/play-album-button';
 import { TrackList } from '@/components/song/track-list';
+import { withBasePath } from '@/lib/base-path';
 import { formatTotalDuration, getPublicAlbum, toTrack } from '@/lib/catalog';
 
 export const dynamic = 'force-dynamic';
@@ -40,7 +41,11 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
           <div className="aspect-square overflow-hidden bg-paper-deep shadow-[0_24px_60px_-24px_rgba(20,17,15,0.5)]">
             {album.coverUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={album.coverUrl} alt={album.title} className="h-full w-full object-cover" />
+              <img
+                src={withBasePath(album.coverUrl)}
+                alt={album.title}
+                className="h-full w-full object-cover"
+              />
             ) : (
               <div className="flex h-full w-full items-center justify-center">
                 <span className="font-display text-5xl text-ink-mute">

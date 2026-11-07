@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { withBasePath } from '@/lib/base-path';
 import { adminFetch, readError, uploadMedia } from '@/lib/client-api';
 
 export type AlbumRow = {
@@ -197,7 +198,7 @@ export function AlbumManager({ initial }: { initial: AlbumRow[] }) {
               <div className="flex items-center gap-4">
                 {draft.coverUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={draft.coverUrl} alt="" className="h-16 w-16 object-cover" />
+                  <img src={withBasePath(draft.coverUrl)} alt="" className="h-16 w-16 object-cover" />
                 ) : (
                   <div className="flex h-16 w-16 items-center justify-center border border-dashed border-line text-[10px] text-ink-mute">
                     无
@@ -268,7 +269,7 @@ export function AlbumManager({ initial }: { initial: AlbumRow[] }) {
                     <div className="h-10 w-10 shrink-0 overflow-hidden bg-paper-deep">
                       {album.coverUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={album.coverUrl} alt="" className="h-full w-full object-cover" />
+                        <img src={withBasePath(album.coverUrl)} alt="" className="h-full w-full object-cover" />
                       ) : null}
                     </div>
                     <div className="min-w-0">

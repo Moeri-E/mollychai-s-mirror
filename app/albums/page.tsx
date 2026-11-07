@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { CoverFlow } from '@/components/album/cover-flow';
+import { withBasePath } from '@/lib/base-path';
 import { formatTotalDuration, listPublicAlbums } from '@/lib/catalog';
 
 export const dynamic = 'force-dynamic';
@@ -34,7 +35,7 @@ export default function AlbumsPage() {
                   {album.coverUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={album.coverUrl}
+                      src={withBasePath(album.coverUrl)}
                       alt={album.title}
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
                     />

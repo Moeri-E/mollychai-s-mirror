@@ -3,6 +3,7 @@
 import { Pause, Play } from 'lucide-react';
 
 import { formatTime, usePlayerActions, usePlayerState } from '@/components/player/player-provider';
+import { withBasePath } from '@/lib/base-path';
 import type { Track } from '@/lib/track';
 
 type Props = {
@@ -44,7 +45,7 @@ export function TrackList({ tracks, fallbackCover, showAlbum = false, compact = 
                 <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-sm bg-paper-deep">
                   {cover ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={cover} alt="" className="h-full w-full object-cover" />
+                    <img src={withBasePath(cover)} alt="" className="h-full w-full object-cover" />
                   ) : null}
                   <span
                     className={`absolute inset-0 flex items-center justify-center bg-ink/55 text-paper transition ${

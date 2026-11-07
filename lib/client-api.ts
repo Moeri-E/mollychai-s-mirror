@@ -1,6 +1,8 @@
 'use client';
 
-/** 管理后台的 fetch 封装：自动带 CSRF token，处理会话过期 */
+import { withBasePath } from '@/lib/base-path';
+
+/** 管理后台的 fetch 封装：自动带 CSRF token 与 basePath，处理会话过期 */
 export async function adminFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   try {
@@ -13,7 +15,7 @@ export async function adminFetch(url: string, init: RequestInit = {}): Promise<R
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(url, { ...init, headers, credentials: 'same-origin' });
+  const response = await fetch(withBasePath(url), { ...init, headers, credentials: 'same-origin' });
 
   if (response.status === 401) {
     try {
@@ -21,7 +23,7 @@ export async function adminFetch(url: string, init: RequestInit = {}): Promise<R
     } catch {
       /* ignore */
     }
-    window.location.href = '/admin/login';
+    window.location.href = withBasePath('/admin/login');
     throw new Error('UNAUTHORIZED');
   }
 

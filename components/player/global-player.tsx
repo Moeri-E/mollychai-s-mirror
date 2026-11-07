@@ -4,6 +4,7 @@ import { ChevronDown, ListMusic, Pause, Play, Repeat, Repeat1, Shuffle, SkipBack
 import { useState } from 'react';
 
 import { formatTime, usePlayerActions, usePlayerState } from '@/components/player/player-provider';
+import { withBasePath } from '@/lib/base-path';
 
 export function GlobalPlayer() {
   const state = usePlayerState();
@@ -80,7 +81,7 @@ export function GlobalPlayer() {
               {state.current?.coverUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={state.current.coverUrl}
+                  src={withBasePath(state.current.coverUrl)}
                   alt=""
                   className={`h-full w-full object-cover ${state.playing ? 'disc-spin' : 'disc-spin is-paused'}`}
                   style={{ borderRadius: '2px' }}

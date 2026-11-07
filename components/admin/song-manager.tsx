@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 
+import { withBasePath } from '@/lib/base-path';
 import { adminFetch, readError, uploadMedia } from '@/lib/client-api';
 
 export type SongRow = {
@@ -293,7 +294,7 @@ export function SongManager({
               <div className="mt-1.5 flex items-center gap-3">
                 {draft.coverUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={draft.coverUrl} alt="" className="h-10 w-10 object-cover" />
+                  <img src={withBasePath(draft.coverUrl)} alt="" className="h-10 w-10 object-cover" />
                 ) : null}
                 <input
                   type="file"
@@ -372,7 +373,7 @@ export function SongManager({
                     <div className="h-9 w-9 shrink-0 overflow-hidden bg-paper-deep">
                       {song.coverUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={song.coverUrl} alt="" className="h-full w-full object-cover" />
+                        <img src={withBasePath(song.coverUrl)} alt="" className="h-full w-full object-cover" />
                       ) : null}
                     </div>
                     <div className="min-w-0">

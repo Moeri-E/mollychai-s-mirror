@@ -28,11 +28,48 @@ npm run dev                 # http://127.0.0.1:3000
 npm ci
 npm run db:migrate
 npm run admin:password -- '强密码'
-npm run build
+
+# 挂在域名子路径下时必须带这个变量构建
+NEXT_PUBLIC_BASE_PATH=/mollychai-mirror npm run build
+
 npm start                   # 默认 0.0.0.0:5020
 ```
 
-`PUBLIC_BASE_URL` 必须设为站点真实地址，否则管理后台的 CSRF 校验会拒绝写操作。
+两个环境变量都必须设置，否则会出问题：
+
+| 变量 | 何时需要 | 作用 |
+|---|---|---|
+| `NEXT_PUBLIC_BASE_PATH` | 部署在子路径（如 `/mollychai-mirror`）时 | 构建和**运行时都要有**，否则路由 404 |
+| `PUBLIC_BASE_URL` | 始终 | 站点真实地址，用于 CSRF Origin 校验；支持逗号分隔多个 |
+
+`NEXT_PUBLIC_BASE_PATH` 会被 `next.config.ts` 和客户端代码同时读取，**构建时和 `npm start` 时必须是同一个值**——只在 build 时设置而运行时缺失，会导致页面 404。
+
+## 部署在域名子路径下
+
+典型拓扑（本项目线上实际用法）：
+
+```
+浏览器 → https://codis.fun/mollychai-mirror
+           ↓ nginx（443，Let's Encrypt）
+           ↓ location ^~ /mollychai-mirror → proxy_pass http://127.0.0.1:5021
+           ↓ frp 隧道（阿里云 frps ← 内网 frpc）
+        内网 192.168.5.22:5020（Next.js）
+```
+
+nginx 侧要点：`proxy_pass` **不要带尾斜杠**（保留完整路径，因为 Next.js 自己带 basePath 前缀），上传体积上限要放大：
+
+```nginx
+location ^~ /mollychai-mirror {
+    proxy_pass http://127.0.0.1:5021;
+    client_max_body_size 60m;
+    proxy_request_buffering off;
+    proxy_buffering off;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+```
 
 ## 数据目录
 

@@ -1,3 +1,5 @@
+import { withBasePath } from '@/lib/base-path';
+
 export type Track = {
   id: string;
   title: string;
@@ -9,5 +11,5 @@ export type Track = {
 };
 
 export function streamUrlFor(id: string): string {
-  return `/api/v1/songs/${id}/stream`;
+  return withBasePath(`/api/v1/songs/${id}/stream`);
 }

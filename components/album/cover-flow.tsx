@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { AlbumCard } from '@/lib/catalog';
+import { withBasePath } from '@/lib/base-path';
 
 type Props = {
   albums: AlbumCard[];
@@ -136,7 +137,7 @@ export function CoverFlow({ albums, initialIndex = 0 }: Props) {
                 {album.coverUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={album.coverUrl}
+                    src={withBasePath(album.coverUrl)}
                     alt={album.title}
                     draggable={false}
                     className="h-full w-full object-cover"
