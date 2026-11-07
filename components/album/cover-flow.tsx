@@ -16,10 +16,12 @@ const STEP = 148;
 /** 松手吸附的位移阈值 */
 const SNAP_THRESHOLD = 64;
 
-export function CoverFlow({ albums, initialIndex = 0 }: Props) {
+export function CoverFlow({ albums, initialIndex }: Props) {
   const router = useRouter();
   const lastIndex = Math.max(albums.length - 1, 0);
-  const [active, setActive] = useState(Math.min(initialIndex, lastIndex));
+  // 默认停在中位，这样首屏左右都有卡片，能直接看出层叠关系
+  const startIndex = Math.min(initialIndex ?? Math.floor(lastIndex / 2), lastIndex);
+  const [active, setActive] = useState(startIndex);
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
 
