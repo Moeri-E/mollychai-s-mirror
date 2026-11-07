@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { adminFetch, readError } from '@/lib/client-api';
+import { copyText } from '@/lib/clipboard';
 
 export type UploaderRow = {
   id: string;
@@ -31,11 +32,32 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
   const [issued, setIssued] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  /** 复制按钮的反馈状态：点一下必须有回应，否则看起来像没生效 */
+  const [copyState, setCopyState] = useState<'idle' | 'ok' | 'fail'>('idle');
+  const codeRef = useRef<HTMLElement | null>(null);
 
   async function reload() {
     const response = await adminFetch('/api/admin/agents');
     const payload = await response.json();
     setUploaders(payload.data ?? []);
+  }
+
+  async function handleCopy() {
+    if (!issued) return;
+    const ok = await copyText(issued);
+    setCopyState(ok ? 'ok' : 'fail');
+
+    // 浏览器拦截写入时（常见于 iframe 内或窗口未聚焦），把令牌自动选中，
+    // 用户直接 Ctrl/Cmd + C 就行，不至于卡在这一步
+    if (!ok && codeRef.current) {
+      const range = document.createRange();
+      range.selectNodeContents(codeRef.current);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+    }
+
+    window.setTimeout(() => setCopyState('idle'), ok ? 1800 : 6000);
   }
 
   async function issue(event: React.FormEvent) {
@@ -181,15 +203,22 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
               新令牌 · 只显示这一次
             </p>
             <div className="mt-2 flex items-center gap-3">
-              <code className="break-all text-xs text-ink">{issued}</code>
+              <code ref={codeRef} className="break-all text-xs text-ink select-all">
+                {issued}
+              </code>
               <button
                 type="button"
-                onClick={() => navigator.clipboard?.writeText(issued)}
-                className="shrink-0 border border-ink px-2 py-1 text-[10px] tracking-[0.1em] uppercase"
+                onClick={handleCopy}
+                className="shrink-0 border border-ink px-2 py-1 text-[10px] tracking-[0.1em] uppercase transition hover:bg-ink hover:text-paper"
               >
-                复制
+                {copyState === 'ok' ? '已复制' : copyState === 'fail' ? '复制失败' : '复制'}
               </button>
             </div>
+            {copyState === 'fail' && (
+              <p className="mt-2 text-[11px] text-ember">
+                浏览器拦截了写入剪贴板，令牌已自动选中，按 Ctrl / Cmd + C 复制。
+              </p>
+            )}
           </div>
         )}
       </section>
