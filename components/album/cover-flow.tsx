@@ -239,6 +239,7 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
                     alt=""
                     draggable={false}
                     className="h-full w-full object-cover"
+                    style={{ transform: 'scaleY(-1)' }}
                   />
                 </span>
               )}

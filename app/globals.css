@@ -126,17 +126,19 @@ body {
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--color-ink), transparent 90%);
   background: var(--color-paper-deep);
+  /* 阴影收敛一些：原来最外那层是 46px 偏移 + 88px 模糊，会一直压到倒影上方，
+     把倒影顶部压暗，看起来就像倒影和卡片之间隔了一段 */
   box-shadow:
-    0 1px 1px rgb(0 0 0 / 5%),
-    0 4px 10px rgb(0 0 0 / 6%),
-    0 18px 36px rgb(0 0 0 / 10%),
-    0 46px 88px rgb(0 0 0 / 10%);
+    0 1px 1px rgb(0 0 0 / 6%),
+    0 5px 12px rgb(0 0 0 / 10%),
+    0 14px 26px rgb(0 0 0 / 12%);
 }
 
 /* 倒影用「镜像副本 + 渐变遮罩」实现，不用 -webkit-box-reflect。
    原因：box-reflect 在 3D transform 的子孙元素上各引擎渲染路径不一致
    （Chrome 能画，Safari / CEF 系内置浏览器常常不画），且 Firefox 从未支持。
-   mask-image 现代浏览器全支持（Safari 需 -webkit- 前缀）。 */
+   要点：整体不设 opacity —— 那样接触面也只有三成亮度，会跟卡片之间出现
+   一道断层，看起来像"倒影离得很远"。亮度衰减全部交给 mask，接触面接近全亮。 */
 .cover-reflection {
   position: absolute;
   top: 100%;
@@ -144,18 +146,27 @@ body {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  opacity: 0.28;
-  /* 注意不要设 transform-origin: top —— 以顶边为轴翻转会把倒影翻到卡片上方、
-     被卡片自身盖住，看起来就像"没有倒影"。用默认 center 才是向下镜像。 */
-  transform: scaleY(-1);
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 55%);
-  mask-image: linear-gradient(to bottom, #000 0%, transparent 55%);
+  /* 容器本身不能翻转：scaleY(-1) 会把 mask 一起翻掉，
+     导致"贴近卡片的顶部透明、远处不透明"——看起来倒影像飘在很远的地方。
+     镜像交给内部的 img 自己做。 */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 12%,
+    rgba(0, 0, 0, 0.42) 32%,
+    rgba(0, 0, 0, 0.16) 46%,
+    transparent 58%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    #000 12%,
+    rgba(0, 0, 0, 0.42) 32%,
+    rgba(0, 0, 0, 0.16) 46%,
+    transparent 58%
+  );
   pointer-events: none;
   user-select: none;
-}
-
-:root[data-theme='dark'] .cover-reflection {
-  opacity: 0.22;
 }
 
 /* 顶部导航下划线 */
