@@ -41,14 +41,15 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
   );
   const go = useCallback((delta: number) => setActive((prev) => clamp(prev + delta)), [clamp]);
 
-  // 卡片尺寸自适应：沉浸模式下撑满一屏，普通模式给下方文字留空间
+  // 卡片尺寸自适应。
+  // 沉浸模式要求卡片本身垂直居中，倒影是向下溢出的，
+  // 所以卡宽要足够小，保证 (可用高度 - 卡宽)/2 能放下倒影（约 0.45 倍卡宽）
   useEffect(() => {
     const calc = () => {
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      const reserved = minimal ? NAV_HEIGHT : 300;
-      const byHeight = (vh - reserved) / 1.6;
       const byWidth = Math.min(vw * 0.3, minimal ? 460 : 380);
+      const byHeight = minimal ? (vh - NAV_HEIGHT) / 1.9 : (vh - 300) / 1.45;
       setCardSize(Math.max(180, Math.min(byWidth, byHeight)));
     };
     calc();
@@ -129,6 +130,11 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
   }
 
   const perspective = cardSize * 2.4;
+  // 沉浸模式：舞台高度就是卡片高度，卡片在舞台内垂直居中，倒影向下溢出
+  // （父容器居中后上下各有多少余量，已在尺寸计算里保证）
+  // 普通模式：舞台额外留 45% 给倒影，卡片相应上移到光学位
+  const stageHeight = minimal ? cardSize : cardSize * 1.45;
+  const topPercent = (cardSize / 2 / stageHeight) * 100;
 
   return (
     // 注意：不要在这里用 overflow-x-clip / overflow-hidden，
@@ -137,7 +143,7 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
       <div
         ref={stageRef}
         className="coverflow-stage"
-        style={{ height: cardSize * 1.6 }}
+        style={{ height: stageHeight }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={finishDrag}
@@ -176,6 +182,7 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
               style={{
                 width: cardSize,
                 height: cardSize,
+                top: `${topPercent}%`,
                 marginLeft: -cardSize / 2,
                 marginTop: -cardSize / 2,
                 transform,
