@@ -11,22 +11,22 @@ type Props = {
   initialIndex?: number;
 };
 
-/** 相邻卡片的水平步进（px），配合卡片宽度形成适度的露出与重叠 */
-const STEP = 148;
-/** 松手吸附的位移阈值 */
-const SNAP_THRESHOLD = 64;
+/** 旋转方向：-1 = 苹果方向（左侧卡 rotateY 为正，右侧为负）；改这一个数即可整体翻转 */
+const TURN = -1;
+/** 拖动超过该比例（相对卡宽）就翻页 */
+const SNAP_RATIO = 0.24;
 
 export function CoverFlow({ albums, initialIndex }: Props) {
   const router = useRouter();
   const lastIndex = Math.max(albums.length - 1, 0);
-  // 默认停在中位，这样首屏左右都有卡片，能直接看出层叠关系
   const startIndex = Math.min(initialIndex ?? Math.floor(lastIndex / 2), lastIndex);
+
   const [active, setActive] = useState(startIndex);
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [cardSize, setCardSize] = useState(320);
 
   const pointerStart = useRef<number | null>(null);
-  const dragDistance = useRef(0);
   const suppressClick = useRef(false);
   const wheelLock = useRef(0);
 
@@ -34,8 +34,21 @@ export function CoverFlow({ albums, initialIndex }: Props) {
     (index: number) => Math.max(0, Math.min(index, lastIndex)),
     [lastIndex],
   );
-
   const go = useCallback((delta: number) => setActive((prev) => clamp(prev + delta)), [clamp]);
+
+  // 卡片尺寸随视口自适应：不超宽度上限，同时保证卡片 + 倒影塞得进视口高度
+  useEffect(() => {
+    const calc = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const byWidth = Math.min(vw * 0.3, 380);
+      const byHeight = (vh - 300) / 1.5;
+      setCardSize(Math.max(196, Math.min(byWidth, byHeight)));
+    };
+    calc();
+    window.addEventListener('resize', calc);
+    return () => window.removeEventListener('resize', calc);
+  }, []);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -49,9 +62,8 @@ export function CoverFlow({ albums, initialIndex }: Props) {
   }, [go]);
 
   const onPointerDown = (event: React.PointerEvent) => {
-    if (event.button !== 0 && event.pointerType === 'mouse') return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
     pointerStart.current = event.clientX;
-    dragDistance.current = 0;
     suppressClick.current = false;
     setDragging(true);
     (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
@@ -60,8 +72,7 @@ export function CoverFlow({ albums, initialIndex }: Props) {
   const onPointerMove = (event: React.PointerEvent) => {
     if (pointerStart.current === null) return;
     const delta = event.clientX - pointerStart.current;
-    dragDistance.current = Math.abs(delta);
-    if (dragDistance.current > 8) suppressClick.current = true;
+    if (Math.abs(delta) > 6) suppressClick.current = true;
     setDragX(delta);
   };
 
@@ -71,14 +82,13 @@ export function CoverFlow({ albums, initialIndex }: Props) {
     pointerStart.current = null;
     setDragging(false);
     setDragX(0);
-
-    if (distance <= -SNAP_THRESHOLD) go(1);
-    else if (distance >= SNAP_THRESHOLD) go(-1);
+    if (distance <= -cardSize * SNAP_RATIO) go(1);
+    else if (distance >= cardSize * SNAP_RATIO) go(-1);
   };
 
   const onWheel = (event: React.WheelEvent) => {
     const now = Date.now();
-    if (now - wheelLock.current < 320) return;
+    if (now - wheelLock.current < 340) return;
     const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
     if (Math.abs(delta) < 12) return;
     wheelLock.current = now;
@@ -102,13 +112,13 @@ export function CoverFlow({ albums, initialIndex }: Props) {
     );
   }
 
-  // 拖拽过程中，把像素位移换算成"虚拟帧"，让旋转缩放同步跟随，避免松手时突变
-  const dragFrames = dragging ? dragX / STEP : 0;
+  const perspective = cardSize * 2.4;
 
   return (
-    <div className="select-none">
+    <div className="relative overflow-x-clip">
       <div
-        className="coverflow-viewport relative mx-auto h-[320px] overflow-hidden sm:h-[380px]"
+        className="coverflow-stage"
+        style={{ height: cardSize * 1.5 }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={finishDrag}
@@ -118,44 +128,53 @@ export function CoverFlow({ albums, initialIndex }: Props) {
         aria-roledescription="carousel"
         aria-label="专辑滑动展示"
       >
-        {albums.map((album, index) => {
-          const pos = index - active - dragFrames;
-          const distance = Math.abs(pos);
-          const isActive = distance < 0.5;
+        <div className="coverflow-floor" aria-hidden />
 
-          const translateX = pos * STEP;
-          const rotateY = Math.max(-52, Math.min(52, pos * -34));
-          const translateZ = -Math.min(distance, 3.2) * 110;
-          const scale = Math.max(0.7, 1 - distance * 0.075);
-          const opacity = Math.max(0.22, 1 - distance * 0.24);
-          const zIndex = Math.round(200 - distance * 20);
+        {albums.map((album, index) => {
+          const offset = index - active;
+          const distance = Math.abs(offset);
+          const dir = offset > 0 ? 1 : offset < 0 ? -1 : 0;
+
+          // 横向间距：首张 58% 卡宽，之后每远一张再加 24%
+          const shift =
+            cardSize * (0.58 * Math.min(distance, 1) + 0.24 * Math.max(0, distance - 1));
+          // 纵深要足够大，否则侧卡近端会跑到中间卡片前面
+          const depth = -distance * cardSize * 0.57;
+          // 转角 56° 起，越远越饱和
+          const rotate = distance === 0 ? 0 : 56 + Math.max(0, distance - 1) * 8;
+          const opacity = Math.max(0, Math.min(1, 0.98 - distance * 0.09));
+
+          // translate3d 必须在 perspective() 左侧：先投影再整体横移，
+          // 否则卡片两端 z 不同，横向位移被不同缩放因子放大，整张卡会被"剪"窄
+          const transform =
+            `translate3d(${dir * shift + dragX}px, 0, 0) ` +
+            `perspective(${perspective}px) ` +
+            `translateZ(${depth}px) ` +
+            `rotateY(${dir * TURN * rotate}deg)`;
 
           return (
             <button
               type="button"
               key={album.id}
               onClick={() => handleCardClick(index)}
-              className="cover-card absolute left-1/2 top-1/2 h-[248px] w-[248px] -translate-x-1/2 -translate-y-1/2 sm:h-[292px] sm:w-[292px]"
+              className="cover-card"
               style={{
-                transform: `translate(-50%, -50%) translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
+                width: cardSize,
+                height: cardSize,
+                marginLeft: -cardSize / 2,
+                marginTop: -cardSize / 2,
+                transform,
                 opacity,
-                zIndex,
-                cursor: dragging ? 'grabbing' : 'pointer',
+                zIndex: 100 - Math.round(distance * 10),
                 transition: dragging
                   ? 'none'
-                  : 'transform 560ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 560ms ease',
+                  : 'transform 620ms cubic-bezier(0.22, 0.82, 0.24, 1), opacity 420ms ease',
               }}
               aria-label={`${album.title} — ${album.artist}`}
-              aria-current={isActive ? 'true' : undefined}
-              tabIndex={index === active ? 0 : -1}
+              aria-current={distance === 0 ? 'true' : undefined}
+              tabIndex={distance === 0 ? 0 : -1}
             >
-              <span
-                className={`block h-full w-full overflow-hidden bg-paper-deep ${
-                  isActive
-                    ? 'shadow-[0_28px_64px_-24px_rgba(20,17,15,0.55)]'
-                    : 'shadow-[0_12px_28px_-16px_rgba(20,17,15,0.45)]'
-                }`}
-              >
+              <span className="cover-frame">
                 {album.coverUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -177,7 +196,7 @@ export function CoverFlow({ albums, initialIndex }: Props) {
       </div>
 
       {/* 当前专辑信息 */}
-      <div className="mx-auto mt-7 max-w-xl text-center">
+      <div className="mx-auto mt-2 max-w-xl text-center">
         <p className="text-[11px] tracking-[0.18em] text-ink-mute">
           {String(active + 1).padStart(2, '0')} —{' '}
           {albums[active].releaseDate?.slice(0, 4) ?? '未标注年份'}

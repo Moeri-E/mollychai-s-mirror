@@ -60,27 +60,96 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Cover Flow 容器 */
-.coverflow-viewport {
-  perspective: 1400px;
-  perspective-origin: 50% 50%;
+/* ---------- Cover Flow ----------
+   关键点（踩过的坑，照着改前先读）：
+   1. 透视必须挂在「每张卡片自己」身上，不能放父级。共用父级 perspective 时消失点在
+      舞台中心，偏心卡片叠加 50°+ 转角会被压成一条细缝。
+   2. transform 里 translate3d 必须写在 perspective() 左侧 —— 先投影再整体横移，
+      否则卡片左右两端 z 不同，横向位移被不同缩放因子放大，整张卡会被"剪"窄。
+   3. 居中用负 margin 而不是 translate(-50%)：让 transform-origin 恒定落在卡片中心，
+      左右两侧的透视消失点才是同一个点，视觉才对称。
+   4. 纵深要足够大（约 -0.57 × 卡宽 × 距离），否则侧卡近端会跑到中间卡片前面。
+*/
+.coverflow-stage {
+  position: relative;
+  margin: 0 auto;
+  cursor: grab;
+  touch-action: pan-y;
+  user-select: none;
 }
 
-.coverflow-track {
-  transform-style: preserve-3d;
-  transition: transform 620ms cubic-bezier(0.22, 0.61, 0.36, 1);
-  will-change: transform;
+.coverflow-stage:active {
+  cursor: grabbing;
 }
 
-.coverflow-track.is-dragging {
-  transition: none;
+/* 地面光晕，给卡片一个"落在桌面"的支点 */
+.coverflow-floor {
+  position: absolute;
+  top: 58%;
+  left: 50%;
+  width: min(52rem, 74%);
+  height: 5.5rem;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse,
+    color-mix(in srgb, var(--color-ink), transparent 82%),
+    transparent 68%
+  );
+  filter: blur(26px);
+  pointer-events: none;
+  transform: translateX(-50%);
 }
 
 .cover-card {
-  transform-style: preserve-3d;
-  will-change: transform, opacity;
+  position: absolute;
+  top: 36%;
+  left: 50%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  transform-origin: 50% 50%;
   backface-visibility: hidden;
-  /* transition 由组件内联控制：拖拽时关闭，松手后吸附时才启用 */
+  will-change: transform, opacity;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.cover-frame {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--color-ink), transparent 90%);
+  background: var(--color-paper-deep);
+  box-shadow:
+    0 1px 1px rgb(0 0 0 / 5%),
+    0 4px 10px rgb(0 0 0 / 6%),
+    0 18px 36px rgb(0 0 0 / 10%),
+    0 46px 88px rgb(0 0 0 / 10%);
+}
+
+/* 倒影只在横屏显示：竖屏下方空间紧，且 3D 旋转下的倒影会错位叠到背面 */
+@media (orientation: landscape) {
+  .cover-frame {
+    -webkit-box-reflect: below 8px
+      linear-gradient(
+        to bottom,
+        rgb(0 0 0 / 0%) 0%,
+        rgb(0 0 0 / 0%) 60%,
+        rgb(0 0 0 / 9%) 78%,
+        rgb(0 0 0 / 24%) 100%
+      );
+  }
+
+  :root[data-theme='dark'] .cover-frame {
+    -webkit-box-reflect: below 8px
+      linear-gradient(
+        to bottom,
+        rgb(0 0 0 / 0%) 0%,
+        rgb(0 0 0 / 0%) 60%,
+        rgb(0 0 0 / 22%) 78%,
+        rgb(0 0 0 / 45%) 100%
+      );
+  }
 }
 
 /* 顶部导航下划线 */
