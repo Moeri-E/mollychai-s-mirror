@@ -16,6 +16,13 @@
 
 :root {
   color-scheme: light;
+  /* 场景明暗：墙 / 地平线 / 台面 / 接触阴影。
+     浅色下台面不做受光亮边（白底上加了反而糊），只靠"越往下越暗"成型。 */
+  --wall-shade: rgb(0 0 0 / 9%);
+  --horizon-line: rgb(0 0 0 / 13%);
+  --floor-sheen: transparent;
+  --floor-bottom: rgb(0 0 0 / 15%);
+  --contact-shadow: rgb(0 0 0 / 34%);
 }
 
 /* 深色模式：覆盖 @theme 生成的 CSS 变量（属性选择器优先级高于 :root） */
@@ -29,6 +36,13 @@
   --color-line: #2b2722;
   --color-accent: #85a4ff;
   --color-ember: #e08a5f;
+
+  /* 深色场景：墙更暗、台面靠地平线一侧略微受光，再向下压暗 */
+  --wall-shade: rgb(0 0 0 / 62%);
+  --horizon-line: rgb(255 255 255 / 12%);
+  --floor-sheen: rgb(255 255 255 / 7%);
+  --floor-bottom: rgb(0 0 0 / 72%);
+  --contact-shadow: rgb(0 0 0 / 55%);
 }
 
 html,
@@ -86,22 +100,89 @@ body {
   cursor: grabbing;
 }
 
-/* 地面光晕，给卡片一个"落在桌面"的支点 */
+/* ---------- 地平线与台面 ----------
+   给卡片一个"立在平面上"的支点：地平线正好对齐卡片底边，
+   线以上是墙（越往上越暗），线以下是台面（越往下越暗），
+   倒影落在这块台面上，立体感就出来了。
+   整层按 100vw 铺开，靠外层 overflow 裁到视口宽度。 */
+.coverflow-ground {
+  position: absolute;
+  left: 50%;
+  width: 100vw;
+  height: 100vh;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* 墙：地平线以上，越往上越暗。
+   高度必须远超视口（150vh）：若只给固定值，元素顶端会在屏内留下一条硬边；
+   渐变的前 62% 就收满，这样可见区域是连续的，最暗处落在屏幕之外。 */
+.coverflow-ground::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 150vh;
+  background: linear-gradient(
+    to top,
+    transparent 0%,
+    var(--wall-shade) 62%,
+    var(--wall-shade) 100%
+  );
+}
+
+/* 地平线：1px，两端渐隐，避免一条横贯整屏的生硬直线 */
+.coverflow-ground::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--horizon-line) 20%,
+    var(--horizon-line) 80%,
+    transparent 100%
+  );
+}
+
+/* 台面：从地平线向下在约 190px 内退到暗处；
+   深色模式额外在地平线处加一道受光亮边（浅色不加，白底上会糊成一片）。
+   这里用像素而不是百分比：单屏布局下地平线到视口底只有 180px 左右，
+   若按 100vh 铺开，可见部分只走到渐变的 20%，等于没变色。 */
 .coverflow-floor {
   position: absolute;
-  top: 58%;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    var(--floor-sheen) 0,
+    color-mix(in srgb, var(--floor-sheen), transparent 70%) 12px,
+    transparent 58px,
+    var(--floor-bottom) 190px
+  );
+}
+
+/* 接触阴影：卡片底边那一小团紧贴的投影，是"立住"最关键的一条线索。
+   它要压在倒影「之上」（z-index 高于卡片），因为现实里接触点附近的倒影
+   会被投影压暗；只压在倒影下方时会被倒影整个盖住，等于不存在。 */
+.coverflow-contact {
+  position: absolute;
   left: 50%;
-  width: min(52rem, 74%);
-  height: 5.5rem;
   border-radius: 50%;
   background: radial-gradient(
-    ellipse,
-    color-mix(in srgb, var(--color-ink), transparent 82%),
-    transparent 68%
+    ellipse at center,
+    var(--contact-shadow) 0%,
+    color-mix(in srgb, var(--contact-shadow), transparent 64%) 42%,
+    transparent 72%
   );
-  filter: blur(26px);
+  filter: blur(6px);
+  transform: translate(-50%, -16%);
   pointer-events: none;
-  transform: translateX(-50%);
+  z-index: 300;
 }
 
 .cover-card {

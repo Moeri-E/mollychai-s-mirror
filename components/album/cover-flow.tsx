@@ -171,7 +171,22 @@ export function CoverFlow({ albums, initialIndex, minimal = false }: Props) {
         aria-roledescription="carousel"
         aria-label="专辑滑动展示"
       >
-        <div className="coverflow-floor" aria-hidden />
+        {/* 地平线 + 墙 + 台面：卡片的底边正好落在地平线上，
+            看起来像立在台面上，倒影投在同一张台面上 */}
+        <div className="coverflow-ground" style={{ top: `${topPercent * 2}%` }} aria-hidden>
+          <span className="coverflow-floor" />
+        </div>
+
+        {/* 卡片底边的接触阴影 */}
+        <div
+          className="coverflow-contact"
+          aria-hidden
+          style={{
+            top: `${topPercent * 2}%`,
+            width: cardSize * 1.3,
+            height: cardSize * 0.15,
+          }}
+        />
 
         {albums.map((album, index) => {
           const offset = index - active;
