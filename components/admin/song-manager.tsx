@@ -193,7 +193,7 @@ export function SongManager({
     <div>
       <header className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl text-ink">Songs</h1>
+          <h1 className="font-display text-3xl text-ink">歌曲</h1>
           <p className="mt-2 text-sm text-ink-soft">上传音频、编辑元数据、关联专辑。</p>
         </div>
         <button
@@ -201,7 +201,7 @@ export function SongManager({
           onClick={startCreate}
           className="border border-ink bg-ink px-4 py-2 text-[11px] tracking-[0.16em] text-paper uppercase transition hover:bg-transparent hover:text-ink"
         >
-          new song
+          新建歌曲
         </button>
       </header>
 
@@ -210,7 +210,7 @@ export function SongManager({
       {open && (
         <section className="mt-6 border border-line px-5 py-5">
           <h2 className="text-[11px] tracking-[0.2em] text-ink-mute uppercase">
-            {editingId ? 'edit song' : 'new song'}
+            {editingId ? '编辑歌曲' : '新建歌曲'}
           </h2>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -334,14 +334,14 @@ export function SongManager({
               disabled={busy || !draft.title.trim() || !draft.audioUrl}
               className="border border-ink bg-ink px-4 py-2 text-[11px] tracking-[0.16em] text-paper uppercase transition hover:bg-transparent hover:text-ink disabled:opacity-40"
             >
-              {busy ? 'saving…' : 'save'}
+              {busy ? '保存中…' : '保存'}
             </button>
             <button
               type="button"
               onClick={() => setOpen(false)}
               className="border border-line px-4 py-2 text-[11px] tracking-[0.16em] text-ink-soft uppercase transition hover:border-ink hover:text-ink"
             >
-              cancel
+              取消
             </button>
           </div>
         </section>
@@ -351,11 +351,11 @@ export function SongManager({
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-line text-left text-[10px] tracking-[0.18em] text-ink-mute uppercase">
-              <th className="py-2 font-normal">Song</th>
-              <th className="py-2 font-normal">Album</th>
-              <th className="py-2 font-normal">Length</th>
-              <th className="py-2 font-normal">Source</th>
-              <th className="py-2 font-normal text-right">Actions</th>
+              <th className="py-2 font-normal">歌曲</th>
+              <th className="py-2 font-normal">专辑</th>
+              <th className="py-2 font-normal">时长</th>
+              <th className="py-2 font-normal">来源</th>
+              <th className="py-2 font-normal text-right">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -380,9 +380,7 @@ export function SongManager({
                       <p className="truncate text-ink">
                         {song.title}
                         {song.isPublic === 0 && (
-                          <span className="ml-2 text-[10px] tracking-[0.1em] text-ink-mute uppercase">
-                            hidden
-                          </span>
+                          <span className="ml-2 text-[11px] text-ink-mute">隐藏</span>
                         )}
                       </p>
                       <p className="truncate text-[11px] text-ink-mute">{song.artist}</p>
@@ -394,22 +392,22 @@ export function SongManager({
                   {formatDuration(song.duration)}
                 </td>
                 <td className="py-3 text-[11px] text-ink-mute">
-                  {song.uploaderName ?? (song.externalId ? 'agent' : 'admin')}
+                  {song.uploaderName ?? (song.externalId ? '智能体' : '后台')}
                 </td>
                 <td className="py-3 text-right">
                   <button
                     type="button"
                     onClick={() => startEdit(song)}
-                    className="mr-3 text-[11px] tracking-[0.1em] text-ink-soft uppercase transition hover:text-ink"
+                    className="mr-3 text-[12px] text-ink-soft transition hover:text-ink"
                   >
-                    edit
+                    编辑
                   </button>
                   <button
                     type="button"
                     onClick={() => remove(song)}
-                    className="text-[11px] tracking-[0.1em] text-ink-mute uppercase transition hover:text-ember"
+                    className="text-[12px] text-ink-mute transition hover:text-ember"
                   >
-                    delete
+                    删除
                   </button>
                 </td>
               </tr>

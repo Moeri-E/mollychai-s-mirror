@@ -37,16 +37,16 @@ export default async function AdminDashboardPage() {
   return (
     <div>
       <header>
-        <h1 className="font-display text-3xl text-ink">Dashboard</h1>
+        <h1 className="font-display text-3xl text-ink">概览</h1>
         <p className="mt-2 text-sm text-ink-soft">内容概览与智能体提交记录。</p>
       </header>
 
       <section className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
         {[
-          { label: 'Albums', value: stats.albums },
-          { label: 'Tracks', value: stats.songs },
-          { label: 'Uploaders', value: stats.uploaders },
-          { label: 'Active tokens', value: stats.activeTokens },
+          { label: '专辑', value: stats.albums },
+          { label: '曲目', value: stats.songs },
+          { label: '上传者', value: stats.uploaders },
+          { label: '有效令牌', value: stats.activeTokens },
         ].map((item) => (
           <div key={item.label} className="border border-line px-4 py-5">
             <p className="text-[10px] tracking-[0.22em] text-ink-mute uppercase">{item.label}</p>
@@ -57,7 +57,7 @@ export default async function AdminDashboardPage() {
 
       <section className="mt-10 grid gap-10 lg:grid-cols-2">
         <div>
-          <h2 className="text-[10px] tracking-[0.24em] text-ink-mute uppercase">recent uploads</h2>
+          <h2 className="text-[11px] tracking-[0.16em] text-ink-mute">最近上传</h2>
           <ul className="mt-4 divide-y divide-line/70">
             {recentSongs.length === 0 && (
               <li className="py-6 text-sm text-ink-mute">暂无歌曲</li>
@@ -67,7 +67,7 @@ export default async function AdminDashboardPage() {
                 <div className="min-w-0">
                   <p className="truncate text-sm text-ink">{song.title}</p>
                   <p className="truncate text-[11px] text-ink-mute">
-                    {song.albumTitle ?? 'single'} · {song.artist}
+                    {song.albumTitle ?? '单曲'} · {song.artist}
                   </p>
                 </div>
                 <span className="shrink-0 text-[10px] tabular-nums text-ink-mute">
@@ -79,8 +79,8 @@ export default async function AdminDashboardPage() {
         </div>
 
         <div>
-          <h2 className="text-[10px] tracking-[0.24em] text-ink-mute uppercase">
-            agent submissions
+          <h2 className="text-[11px] tracking-[0.16em] text-ink-mute">
+            智能体提交
           </h2>
           <ul className="mt-4 divide-y divide-line/70">
             {submissions.length === 0 && (
@@ -91,7 +91,7 @@ export default async function AdminDashboardPage() {
                 <div className="min-w-0">
                   <p className="truncate text-sm text-ink">{item.externalId ?? '—'}</p>
                   <p className="truncate text-[11px] text-ink-mute">
-                    {item.uploaderName ?? 'unknown'} ·{' '}
+                    {item.uploaderName ?? '未知'} ·{' '}
                     <span
                       className={
                         item.status === 'failed'

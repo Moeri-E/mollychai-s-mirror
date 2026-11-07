@@ -3,37 +3,42 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import type { AlbumCard } from '@/lib/catalog';
 import { withBasePath } from '@/lib/base-path';
+import type { AlbumCard } from '@/lib/catalog';
 
 type Props = {
   albums: AlbumCard[];
   initialIndex?: number;
 };
 
-const CARD_OFFSET = 0.62; // 相邻卡片的水平位移占卡宽比例
+/** 相邻卡片的水平步进（px），配合卡片宽度形成适度的露出与重叠 */
+const STEP = 148;
+/** 松手吸附的位移阈值 */
+const SNAP_THRESHOLD = 64;
 
 export function CoverFlow({ albums, initialIndex = 0 }: Props) {
   const router = useRouter();
-  const [active, setActive] = useState(Math.min(initialIndex, Math.max(albums.length - 1, 0)));
+  const lastIndex = Math.max(albums.length - 1, 0);
+  const [active, setActive] = useState(Math.min(initialIndex, lastIndex));
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
 
   const pointerStart = useRef<number | null>(null);
   const dragDistance = useRef(0);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const suppressClick = useRef(false);
   const wheelLock = useRef(0);
 
   const clamp = useCallback(
-    (index: number) => Math.max(0, Math.min(index, albums.length - 1)),
-    [albums.length],
+    (index: number) => Math.max(0, Math.min(index, lastIndex)),
+    [lastIndex],
   );
 
   const go = useCallback((delta: number) => setActive((prev) => clamp(prev + delta)), [clamp]);
 
-  // 键盘左右切换
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
+      const tag = (event.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
       if (event.key === 'ArrowLeft') go(-1);
       if (event.key === 'ArrowRight') go(1);
     };
@@ -42,38 +47,49 @@ export function CoverFlow({ albums, initialIndex = 0 }: Props) {
   }, [go]);
 
   const onPointerDown = (event: React.PointerEvent) => {
+    if (event.button !== 0 && event.pointerType === 'mouse') return;
     pointerStart.current = event.clientX;
     dragDistance.current = 0;
+    suppressClick.current = false;
     setDragging(true);
-    (event.target as HTMLElement).setPointerCapture?.(event.pointerId);
+    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
   };
 
   const onPointerMove = (event: React.PointerEvent) => {
     if (pointerStart.current === null) return;
     const delta = event.clientX - pointerStart.current;
     dragDistance.current = Math.abs(delta);
+    if (dragDistance.current > 8) suppressClick.current = true;
     setDragX(delta);
   };
 
   const finishDrag = () => {
     if (pointerStart.current === null) return;
-    const threshold = 70;
     const distance = dragX;
     pointerStart.current = null;
-    setDragX(0);
     setDragging(false);
+    setDragX(0);
 
-    if (distance <= -threshold) go(1);
-    else if (distance >= threshold) go(-1);
+    if (distance <= -SNAP_THRESHOLD) go(1);
+    else if (distance >= SNAP_THRESHOLD) go(-1);
   };
 
   const onWheel = (event: React.WheelEvent) => {
     const now = Date.now();
     if (now - wheelLock.current < 320) return;
-    if (Math.abs(event.deltaX) < 12 && Math.abs(event.deltaY) < 12) return;
+    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+    if (Math.abs(delta) < 12) return;
     wheelLock.current = now;
-    const direction = (event.deltaX || event.deltaY) > 0 ? 1 : -1;
-    go(direction);
+    go(delta > 0 ? 1 : -1);
+  };
+
+  const handleCardClick = (index: number) => {
+    if (suppressClick.current) {
+      suppressClick.current = false;
+      return;
+    }
+    if (index === active) router.push(`/albums/${albums[index].id}`);
+    else setActive(index);
   };
 
   if (albums.length === 0) {
@@ -84,56 +100,60 @@ export function CoverFlow({ albums, initialIndex = 0 }: Props) {
     );
   }
 
+  // 拖拽过程中，把像素位移换算成"虚拟帧"，让旋转缩放同步跟随，避免松手时突变
+  const dragFrames = dragging ? dragX / STEP : 0;
+
   return (
     <div className="select-none">
       <div
-        ref={containerRef}
-        className="coverflow-viewport relative mx-auto h-[300px] overflow-hidden sm:h-[340px]"
+        className="coverflow-viewport relative mx-auto h-[320px] overflow-hidden sm:h-[380px]"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={finishDrag}
         onPointerCancel={finishDrag}
-        onPointerLeave={() => pointerStart.current !== null && finishDrag()}
         onWheel={onWheel}
         role="group"
         aria-roledescription="carousel"
         aria-label="专辑滑动展示"
       >
         {albums.map((album, index) => {
-          const offset = index - active;
-          const distance = Math.abs(offset);
-          const isActive = offset === 0;
+          const pos = index - active - dragFrames;
+          const distance = Math.abs(pos);
+          const isActive = distance < 0.5;
 
-          const translateX = offset * 168 + dragX * 0.55;
-          const rotateY = offset === 0 ? 0 : offset > 0 ? -38 : 38;
-          const translateZ = -Math.min(distance, 4) * 130;
-          const scale = isActive ? 1 : Math.max(0.74, 1 - distance * 0.07);
-          const opacity = isActive ? 1 : Math.max(0.28, 1 - distance * 0.26);
+          const translateX = pos * STEP;
+          const rotateY = Math.max(-52, Math.min(52, pos * -34));
+          const translateZ = -Math.min(distance, 3.2) * 110;
+          const scale = Math.max(0.7, 1 - distance * 0.075);
+          const opacity = Math.max(0.22, 1 - distance * 0.24);
+          const zIndex = Math.round(200 - distance * 20);
 
           return (
             <button
               type="button"
               key={album.id}
-              onClick={() => {
-                if (dragDistance.current > 8) return;
-                if (isActive) {
-                  router.push(`/albums/${album.id}`);
-                } else {
-                  setActive(index);
-                }
-              }}
-              className="cover-card absolute left-1/2 top-1/2 h-[240px] w-[240px] -translate-x-1/2 -translate-y-1/2 sm:h-[280px] sm:w-[280px]"
+              onClick={() => handleCardClick(index)}
+              className="cover-card absolute left-1/2 top-1/2 h-[248px] w-[248px] -translate-x-1/2 -translate-y-1/2 sm:h-[292px] sm:w-[292px]"
               style={{
                 transform: `translate(-50%, -50%) translateX(${translateX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg) scale(${scale})`,
                 opacity,
-                zIndex: 100 - distance,
-                filter: isActive ? 'none' : 'brightness(0.92)',
+                zIndex,
                 cursor: dragging ? 'grabbing' : 'pointer',
+                transition: dragging
+                  ? 'none'
+                  : 'transform 560ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 560ms ease',
               }}
               aria-label={`${album.title} — ${album.artist}`}
               aria-current={isActive ? 'true' : undefined}
+              tabIndex={index === active ? 0 : -1}
             >
-              <span className="block h-full w-full overflow-hidden bg-paper-deep shadow-[0_18px_50px_-18px_rgba(20,17,15,0.45)]">
+              <span
+                className={`block h-full w-full overflow-hidden bg-paper-deep ${
+                  isActive
+                    ? 'shadow-[0_28px_64px_-24px_rgba(20,17,15,0.55)]'
+                    : 'shadow-[0_12px_28px_-16px_rgba(20,17,15,0.45)]'
+                }`}
+              >
                 {album.coverUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -145,7 +165,7 @@ export function CoverFlow({ albums, initialIndex = 0 }: Props) {
                 ) : (
                   <span className="flex h-full w-full flex-col items-center justify-center gap-2 text-ink-mute">
                     <span className="font-display text-3xl">{album.title.slice(0, 1)}</span>
-                    <span className="text-[11px] tracking-[0.2em] text-ink-mute">无封面</span>
+                    <span className="text-[11px] tracking-[0.2em]">无封面</span>
                   </span>
                 )}
               </span>
@@ -155,9 +175,10 @@ export function CoverFlow({ albums, initialIndex = 0 }: Props) {
       </div>
 
       {/* 当前专辑信息 */}
-      <div className="mx-auto mt-6 max-w-xl text-center">
+      <div className="mx-auto mt-7 max-w-xl text-center">
         <p className="text-[11px] tracking-[0.18em] text-ink-mute">
-          {String(active + 1).padStart(2, '0')} — {albums[active].releaseDate?.slice(0, 4) ?? '未标注年份'}
+          {String(active + 1).padStart(2, '0')} —{' '}
+          {albums[active].releaseDate?.slice(0, 4) ?? '未标注年份'}
         </p>
         <h2 className="font-display mt-2 text-2xl text-ink sm:text-3xl">{albums[active].title}</h2>
         <p className="mt-1 text-sm text-ink-soft">{albums[active].artist}</p>
@@ -190,7 +211,7 @@ export function CoverFlow({ albums, initialIndex = 0 }: Props) {
           <button
             type="button"
             onClick={() => go(1)}
-            disabled={active === albums.length - 1}
+            disabled={active === lastIndex}
             className="border border-line px-4 py-1.5 text-[12px] text-ink-soft transition hover:border-ink hover:text-ink disabled:opacity-30"
           >
             下一张

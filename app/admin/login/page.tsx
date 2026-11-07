@@ -43,11 +43,11 @@ export default function AdminLoginPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-6">
       <p className="font-display text-2xl text-ink">mollychai&rsquo;s mirror</p>
-      <p className="mt-1 text-[10px] tracking-[0.28em] text-ink-mute uppercase">admin console</p>
+      <p className="mt-1 text-[11px] tracking-[0.2em] text-ink-mute">管理后台</p>
 
       <form onSubmit={submit} className="mt-10 space-y-4">
         <label className="block">
-          <span className="text-[11px] tracking-[0.16em] text-ink-mute uppercase">password</span>
+          <span className="text-[11px] tracking-[0.16em] text-ink-mute">密码</span>
           <input
             type="password"
             value={password}
@@ -65,7 +65,7 @@ export default function AdminLoginPage() {
           disabled={loading || !password}
           className="w-full border border-ink bg-ink py-2.5 text-[11px] tracking-[0.18em] text-paper uppercase transition hover:bg-transparent hover:text-ink disabled:opacity-40"
         >
-          {loading ? 'verifying…' : 'enter'}
+          {loading ? '验证中…' : '登录'}
         </button>
       </form>
 

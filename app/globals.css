@@ -18,6 +18,19 @@
   color-scheme: light;
 }
 
+/* 深色模式：覆盖 @theme 生成的 CSS 变量（属性选择器优先级高于 :root） */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --color-paper: #100e0c;
+  --color-paper-deep: #1a1714;
+  --color-ink: #f0eae0;
+  --color-ink-soft: #b4aca1;
+  --color-ink-mute: #786f66;
+  --color-line: #2b2722;
+  --color-accent: #85a4ff;
+  --color-ember: #e08a5f;
+}
+
 html,
 body {
   background: var(--color-paper);
@@ -64,13 +77,10 @@ body {
 }
 
 .cover-card {
-  transition:
-    transform 620ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    opacity 620ms ease,
-    filter 620ms ease;
   transform-style: preserve-3d;
   will-change: transform, opacity;
   backface-visibility: hidden;
+  /* transition 由组件内联控制：拖拽时关闭，松手后吸附时才启用 */
 }
 
 /* 顶部导航下划线 */

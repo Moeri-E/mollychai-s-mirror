@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
+import { ThemeToggle } from '@/components/theme-toggle';
+
 const LINKS = [
   { href: '/', label: '首页' },
   { href: '/albums', label: '专辑' },
@@ -22,7 +24,8 @@ export function SiteNav() {
           mollychai&rsquo;s mirror
         </Link>
 
-        <ul className="flex items-center gap-5 sm:gap-7">
+        <div className="flex items-center gap-4 sm:gap-6">
+          <ul className="flex items-center gap-4 sm:gap-6">
           {LINKS.map((link) => {
             const active =
               link.href === '/' ? pathname === '/' : pathname.startsWith(link.href);
@@ -40,7 +43,9 @@ export function SiteNav() {
               </li>
             );
           })}
-        </ul>
+          </ul>
+          <ThemeToggle />
+        </div>
       </nav>
     </header>
   );

@@ -109,19 +109,19 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
   return (
     <div>
       <header>
-        <h1 className="font-display text-3xl text-ink">Agents</h1>
+        <h1 className="font-display text-3xl text-ink">智能体</h1>
         <p className="mt-2 text-sm text-ink-soft">
           为外部智能体签发上传令牌。令牌明文只显示一次，请立即保存。
         </p>
       </header>
 
       <section className="mt-8 border border-line px-5 py-5">
-        <h2 className="text-[11px] tracking-[0.2em] text-ink-mute uppercase">issue token</h2>
+        <h2 className="text-[11px] tracking-[0.2em] text-ink-mute">签发令牌</h2>
 
         <form onSubmit={issue} className="mt-4 grid gap-4 sm:grid-cols-2">
           <label className="block">
-            <span className="text-[10px] tracking-[0.16em] text-ink-mute uppercase">
-              uploader id
+            <span className="text-[11px] tracking-[0.12em] text-ink-mute">
+              上传者 ID
             </span>
             <input
               value={uploaderId}
@@ -132,8 +132,8 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
             />
           </label>
           <label className="block">
-            <span className="text-[10px] tracking-[0.16em] text-ink-mute uppercase">
-              display name
+            <span className="text-[11px] tracking-[0.12em] text-ink-mute">
+              显示名称
             </span>
             <input
               value={displayName}
@@ -143,7 +143,7 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
             />
           </label>
           <label className="block">
-            <span className="text-[10px] tracking-[0.16em] text-ink-mute uppercase">token name</span>
+            <span className="text-[11px] tracking-[0.12em] text-ink-mute">令牌名称</span>
             <input
               value={tokenName}
               onChange={(event) => setTokenName(event.target.value)}
@@ -151,8 +151,8 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
             />
           </label>
           <label className="block">
-            <span className="text-[10px] tracking-[0.16em] text-ink-mute uppercase">
-              expires at（可选）
+            <span className="text-[11px] tracking-[0.12em] text-ink-mute">
+              到期时间（可选）
             </span>
             <input
               type="date"
@@ -168,7 +168,7 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
               disabled={busy || !uploaderId.trim()}
               className="border border-ink bg-ink px-4 py-2 text-[11px] tracking-[0.16em] text-paper uppercase transition hover:bg-transparent hover:text-ink disabled:opacity-40"
             >
-              {busy ? 'issuing…' : 'issue token'}
+              {busy ? '签发中…' : '签发令牌'}
             </button>
           </div>
         </form>
@@ -187,7 +187,7 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
                 onClick={() => navigator.clipboard?.writeText(issued)}
                 className="shrink-0 border border-ink px-2 py-1 text-[10px] tracking-[0.1em] uppercase"
               >
-                copy
+                复制
               </button>
             </div>
           </div>
@@ -216,7 +216,7 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
                 onClick={() => toggleUploader(uploader.id, uploader.enabled !== 1)}
                 className="border border-line px-3 py-1 text-[10px] tracking-[0.12em] uppercase transition hover:border-ink hover:text-ink"
               >
-                {uploader.enabled === 1 ? 'disable' : 'enable'}
+                {uploader.enabled === 1 ? '停用' : '启用'}
               </button>
             </div>
 
@@ -227,7 +227,7 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
                     <p className="text-[13px] text-ink">
                       {token.name}
                       <span className="ml-2 text-[10px] tracking-[0.1em] text-ink-mute uppercase">
-                        {token.enabled === 1 ? 'active' : 'disabled'}
+                        {token.enabled === 1 ? '启用中' : '已停用'}
                       </span>
                     </p>
                     <p className="text-[11px] text-ink-mute">
@@ -242,14 +242,14 @@ export function AgentManager({ initial }: { initial: UploaderRow[] }) {
                       onClick={() => toggleToken(token.id, token.enabled !== 1)}
                       className="text-[10px] tracking-[0.12em] text-ink-soft uppercase transition hover:text-ink"
                     >
-                      {token.enabled === 1 ? 'disable' : 'enable'}
+                      {token.enabled === 1 ? '停用' : '启用'}
                     </button>
                     <button
                       type="button"
                       onClick={() => revoke(token.id)}
                       className="text-[10px] tracking-[0.12em] text-ink-mute uppercase transition hover:text-ember"
                     >
-                      revoke
+                      吊销
                     </button>
                   </div>
                 </li>

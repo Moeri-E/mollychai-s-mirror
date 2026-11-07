@@ -23,8 +23,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <body className="paper-grain min-h-screen bg-paper text-ink antialiased">
+        {/* 首屏之前确定主题，避免深色用户看到白屏闪烁 */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var t=localStorage.getItem('mm_theme');if(!t){t=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}document.documentElement.setAttribute('data-theme',t);}catch(e){}})();",
+          }}
+        />
         <PlayerProvider>
           <SiteNav />
           <main className="relative z-10 pb-28">{children}</main>

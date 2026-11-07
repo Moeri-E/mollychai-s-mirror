@@ -136,7 +136,7 @@ export function AlbumManager({ initial }: { initial: AlbumRow[] }) {
     <div>
       <header className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-3xl text-ink">Albums</h1>
+          <h1 className="font-display text-3xl text-ink">专辑</h1>
           <p className="mt-2 text-sm text-ink-soft">创建专辑、更换封面、控制是否公开。</p>
         </div>
         <button
@@ -144,7 +144,7 @@ export function AlbumManager({ initial }: { initial: AlbumRow[] }) {
           onClick={startCreate}
           className="border border-ink bg-ink px-4 py-2 text-[11px] tracking-[0.16em] text-paper uppercase transition hover:bg-transparent hover:text-ink"
         >
-          new album
+          新建专辑
         </button>
       </header>
 
@@ -153,7 +153,7 @@ export function AlbumManager({ initial }: { initial: AlbumRow[] }) {
       {open && (
         <section className="mt-6 border border-line px-5 py-5">
           <h2 className="text-[11px] tracking-[0.2em] text-ink-mute uppercase">
-            {editingId ? 'edit album' : 'new album'}
+            {editingId ? '编辑专辑' : '新建专辑'}
           </h2>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             <Field label="标题">
@@ -231,14 +231,14 @@ export function AlbumManager({ initial }: { initial: AlbumRow[] }) {
               disabled={busy || !draft.title.trim()}
               className="border border-ink bg-ink px-4 py-2 text-[11px] tracking-[0.16em] text-paper uppercase transition hover:bg-transparent hover:text-ink disabled:opacity-40"
             >
-              {busy ? 'saving…' : 'save'}
+              {busy ? '保存中…' : '保存'}
             </button>
             <button
               type="button"
               onClick={() => setOpen(false)}
               className="border border-line px-4 py-2 text-[11px] tracking-[0.16em] text-ink-soft uppercase transition hover:border-ink hover:text-ink"
             >
-              cancel
+              取消
             </button>
           </div>
         </section>
@@ -248,10 +248,10 @@ export function AlbumManager({ initial }: { initial: AlbumRow[] }) {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-line text-left text-[10px] tracking-[0.18em] text-ink-mute uppercase">
-              <th className="py-2 font-normal">Album</th>
-              <th className="py-2 font-normal">Tracks</th>
-              <th className="py-2 font-normal">Status</th>
-              <th className="py-2 font-normal text-right">Actions</th>
+              <th className="py-2 font-normal">专辑</th>
+              <th className="py-2 font-normal">曲目</th>
+              <th className="py-2 font-normal">状态</th>
+              <th className="py-2 font-normal text-right">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -293,16 +293,16 @@ export function AlbumManager({ initial }: { initial: AlbumRow[] }) {
                   <button
                     type="button"
                     onClick={() => startEdit(album)}
-                    className="mr-3 text-[11px] tracking-[0.1em] text-ink-soft uppercase transition hover:text-ink"
+                    className="mr-3 text-[12px] text-ink-soft transition hover:text-ink"
                   >
-                    edit
+                    编辑
                   </button>
                   <button
                     type="button"
                     onClick={() => remove(album)}
-                    className="text-[11px] tracking-[0.1em] text-ink-mute uppercase transition hover:text-ember"
+                    className="text-[12px] text-ink-mute transition hover:text-ember"
                   >
-                    delete
+                    删除
                   </button>
                 </td>
               </tr>
