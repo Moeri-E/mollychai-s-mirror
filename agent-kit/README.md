@@ -145,6 +145,8 @@ Content-Type: multipart/form-data; boundary=...
 
 MIME 类型必须正确，服务端会校验，不依赖扩展名。
 
+未指定 albumTitle / albumExternalId、音频里也没有 ALBUM 标签时，歌曲会被当作「单曲」，同样以独立卡片出现在站点首页。
+
 ### 内嵌元数据自动解析
 
 当 metadata 里没有提供某些字段时，服务端会从音频文件的内嵌 tag 自动补全（仅 FLAC 与 MP3）：

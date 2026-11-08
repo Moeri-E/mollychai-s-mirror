@@ -133,7 +133,8 @@ export async function POST(request: Request) {
           description: meta.albumDescription ?? null,
           releaseDate: meta.albumReleaseDate ?? embedded.releaseDate ?? meta.releaseDate ?? null,
           themeColor: meta.themeColor ?? null,
-          coverUrl: savedCover?.url ?? null,
+          // 表单/内嵌封面优先；都没有时可用 metadata 里显式给的专辑封面 URL
+          coverUrl: savedCover?.url ?? meta.albumCoverUrl ?? null,
           uploaderId: principal.uploaderId,
           now,
         });

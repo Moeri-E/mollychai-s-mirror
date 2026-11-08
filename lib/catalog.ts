@@ -52,7 +52,7 @@ export function listPublicAlbumsWithTracks(): AlbumWithTracks[] {
      ORDER BY s.track_number ASC, s.created_at ASC`,
   );
 
-  return albums.map((album) => ({
+  const withTracks: AlbumWithTracks[] = albums.map((album) => ({
     ...album,
     tracks: (stmt.all(album.id) as {
       id: string;
@@ -63,6 +63,39 @@ export function listPublicAlbumsWithTracks(): AlbumWithTracks[] {
       albumId: string;
     }[]).map((song) => toTrack({ ...song, albumTitle: album.title })),
   }));
+
+  // 没有专辑归属的公开单曲也要进首页：智能体只提交一首歌（没给 albumTitle、
+  // 音频里也没有 ALBUM tag）时，若只查 albums 表，主页面会看不到任何新内容。
+  // 用歌名当卡片标题、歌曲封面当卡片封面，虚拟成一张「单曲」卡片。
+  const singles = getDb()
+    .prepare(
+      `SELECT s.id, s.title, s.artist, s.duration, s.cover_url AS coverUrl
+       FROM songs s
+       WHERE s.album_id IS NULL AND s.is_public = 1
+       ORDER BY s.created_at DESC`,
+    )
+    .all() as {
+    id: string;
+    title: string;
+    artist: string;
+    duration: number;
+    coverUrl: string | null;
+  }[];
+
+  const singleCards: AlbumWithTracks[] = singles.map((song) => ({
+    id: `single:${song.id}`,
+    title: song.title,
+    artist: song.artist,
+    coverUrl: song.coverUrl,
+    description: null,
+    releaseDate: null,
+    themeColor: null,
+    trackCount: 1,
+    totalDuration: song.duration,
+    tracks: [toTrack({ ...song, albumTitle: '单曲' })],
+  }));
+
+  return [...withTracks, ...singleCards];
 }
 
 export function getPublicAlbum(id: string): (AlbumCard & { tracks: AlbumTrack[] }) | null {
