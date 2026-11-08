@@ -1,7 +1,7 @@
 import type { NextRequest } from 'next/server';
 
 import { fail, ok, serverError } from '@/lib/api';
-import { estimateDuration } from '@/lib/audio-duration';
+import { parseAudioMetadata } from '@/lib/audio-metadata';
 import { auditAdmin, requireAdminRequest } from '@/lib/auth';
 import { LIMITS } from '@/lib/constants';
 import { saveAudio, saveCover } from '@/lib/media';
@@ -45,12 +45,24 @@ export async function POST(request: NextRequest) {
       const buffer = Buffer.from(await file.arrayBuffer());
       const saved = saveAudio(buffer, mime);
       auditAdmin('media.upload', 'audio', saved.fileName, { bytes: file.size });
+      // FLAC 用 STREAMINFO 精确解析；MP3/WAV 沿用估算器。附带返回内嵌 tag 供前端预填
+      const meta = parseAudioMetadata(buffer, mime);
       return ok({
         url: saved.url,
         kind: 'audio',
         format: mime,
-        duration: estimateDuration(buffer, mime),
+        duration: meta.duration,
         bytes: file.size,
+        embedded: {
+          title: meta.title ?? null,
+          artist: meta.artist ?? null,
+          album: meta.album ?? null,
+          genre: meta.genre ?? null,
+          releaseDate: meta.releaseDate ?? null,
+          trackNumber: meta.trackNumber ?? null,
+          hasLyrics: Boolean(meta.lyrics),
+          hasCover: Boolean(meta.cover),
+        },
       });
     }
 

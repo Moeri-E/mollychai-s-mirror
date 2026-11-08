@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { fail, ok, serverError, zodFail } from '@/lib/api';
-import { estimateDuration } from '@/lib/audio-duration';
+import { parseAudioMetadata } from '@/lib/audio-metadata';
 import { auditAdmin, getRequestIp, requireAgentRequest } from '@/lib/auth';
 import { LIMITS } from '@/lib/constants';
 import { getDb } from '@/lib/db';
@@ -89,7 +89,24 @@ export async function POST(request: Request) {
   }
 
   const audioBuffer = Buffer.from(await audioFile.arrayBuffer());
-  const duration = meta.duration && meta.duration > 0 ? meta.duration : estimateDuration(audioBuffer, audioMime);
+  // 从音频文件内嵌 tag 解析（FLAC Vorbis comment / MP3 ID3v2）：
+  // 时长优先级 = metadata 显式提交 > 文件内嵌；其他字段同理。
+  // FLAC 的 STREAMINFO 能给出精确时长，修复了此前 flac 时长为 0 的问题。
+  const embedded = parseAudioMetadata(audioBuffer, audioMime);
+  const duration =
+    meta.duration && meta.duration > 0 ? meta.duration : embedded.duration;
+  const artist = meta.artist ?? embedded.artist ?? principal.uploaderName;
+  const genre = meta.genre ?? embedded.genre ?? null;
+  const lyrics = meta.lyrics ?? embedded.lyrics ?? null;
+  const trackNumber = meta.trackNumber ?? embedded.trackNumber ?? 0;
+  const albumTitle = meta.albumTitle ?? embedded.album ?? undefined;
+  // 表单没传封面文件时，用音频内嵌封面（FLAC PICTURE / MP3 APIC）
+  if (!coverBuffer && embedded.cover && LIMITS.coverMimeTypes.includes(embedded.cover.mime)) {
+    if (embedded.cover.buffer.byteLength <= LIMITS.coverMaxBytes) {
+      coverBuffer = embedded.cover.buffer;
+      coverMime = embedded.cover.mime;
+    }
+  }
 
   const existing = db
     .prepare('SELECT id, audio_url AS audioUrl, cover_url AS coverUrl FROM songs WHERE external_id = ?')
@@ -108,13 +125,13 @@ export async function POST(request: Request) {
     const result = db.transaction(() => {
       // ---- 专辑归属 ----
       let albumId: string | null = null;
-      if (meta.albumExternalId || meta.albumTitle) {
+      if (meta.albumExternalId || albumTitle) {
         albumId = resolveAlbum({
           externalId: meta.albumExternalId ?? null,
-          title: meta.albumTitle ?? null,
-          artist: meta.albumArtist ?? meta.artist ?? principal.uploaderName,
+          title: albumTitle ?? null,
+          artist: meta.albumArtist ?? artist,
           description: meta.albumDescription ?? null,
-          releaseDate: meta.albumReleaseDate ?? meta.releaseDate ?? null,
+          releaseDate: meta.albumReleaseDate ?? embedded.releaseDate ?? meta.releaseDate ?? null,
           themeColor: meta.themeColor ?? null,
           coverUrl: savedCover?.url ?? null,
           uploaderId: principal.uploaderId,
@@ -132,14 +149,14 @@ export async function POST(request: Request) {
         ).run(
           albumId,
           meta.title,
-          meta.artist ?? principal.uploaderName,
+          artist,
           savedAudio!.url,
           savedCover?.url ?? existing.coverUrl,
           duration,
-          meta.trackNumber ?? 0,
+          trackNumber,
           audioMime,
-          meta.genre ?? null,
-          meta.lyrics ?? null,
+          genre,
+          lyrics,
           meta.isPublic ? 1 : 0,
           meta.externalId,
           principal.uploaderId,
@@ -157,14 +174,14 @@ export async function POST(request: Request) {
           songId,
           albumId,
           meta.title,
-          meta.artist ?? principal.uploaderName,
+          artist,
           savedAudio!.url,
           savedCover?.url ?? null,
           duration,
-          meta.trackNumber ?? 0,
+          trackNumber,
           audioMime,
-          meta.genre ?? null,
-          meta.lyrics ?? null,
+          genre,
+          lyrics,
           meta.isPublic ? 1 : 0,
           meta.externalId,
           principal.uploaderId,

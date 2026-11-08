@@ -145,6 +145,19 @@ Content-Type: multipart/form-data; boundary=...
 
 MIME 类型必须正确，服务端会校验，不依赖扩展名。
 
+### 内嵌元数据自动解析
+
+当 metadata 里没有提供某些字段时，服务端会从音频文件的内嵌 tag 自动补全（仅 FLAC 与 MP3）：
+
+- **FLAC**：Vorbis comment（TITLE / ARTIST / ALBUM / GENRE / TRACKNUMBER / DATE / LYRICS 等）+ 内嵌封面（PICTURE block）+ STREAMINFO 精确时长
+- **MP3**：ID3v2.3 / v2.4 文本帧（TIT2 / TPE1 / TALB / TCON / TRCK / TDRC / TYER）+ 歌词（USLT）+ 内嵌封面（APIC）；时长为估算值
+
+优先级：metadata 显式提交的字段 > 音频内嵌 tag > 上传者名称（artist 兜底）。
+表单里单独上传的 cover 文件 > 音频内嵌封面。
+albumTitle 未提供时会使用内嵌的 ALBUM 字段并自动创建专辑。
+
+也就是说：**一首自带完整 tag 的 FLAC，理论上只需要 externalId 和 title 就能上传成一条带封面、歌词、作者、专辑信息的完整记录。**
+
 ### 幂等行为
 
 `externalId` 是幂等键：
