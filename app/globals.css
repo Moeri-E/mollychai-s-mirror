@@ -638,6 +638,12 @@ input[type='range'].range-thin::-moz-range-thumb {
   z-index: 2;
 }
 
+/* 中心标签是封面图时，封面本身不对称、转动能看出来，这个暗点就多余了；
+   纯色标签（无封面图的专辑）才需要它辅助看出转动 */
+.sleeve-vinyl:has(.sleeve-label)::before {
+  display: none;
+}
+
 /* 中心标签：封面图圆形裁切，替代原来的纯色块。
    直径 38% ≈ 真实黑胶中心标签的比例，大到能看清封面图案。
    跟着唱片一起转。无封面图时不渲染，露出橙色。 */
