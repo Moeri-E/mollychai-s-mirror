@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import { AlbumDeck } from '@/components/album/album-deck';
-import { usePlayerActions } from '@/components/player/player-provider';
+import { useCurrentTrackId, usePlayerActions } from '@/components/player/player-provider';
 import { withBasePath } from '@/lib/base-path';
 import type { AlbumWithTracks } from '@/lib/catalog';
 
@@ -36,9 +36,20 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
   const startIndex = Math.min(initialIndex ?? Math.floor(lastIndex / 2), lastIndex);
 
   // 只取动作，不取状态：订阅 state 会跟着 timeupdate 每秒重渲染四次整个 Cover Flow
-  const { cueTrack, pause } = usePlayerActions();
+  const { cueTrack, pause, replaceQueue } = usePlayerActions();
+  // 只订阅当前曲目 id（换曲才变）。从单曲页播放后回到首页时，用它定位
+  // 该曲目所属的卡片，直接以"专辑已打开"的姿态呈现——音频实例在 root layout
+  // 的 PlayerProvider 里跨路由不销毁，播放状态与进度天然保持原样。
+  const currentTrackId = useCurrentTrackId();
+  const restoredIndex = useMemo(() => {
+    if (!currentTrackId) return null;
+    const index = albums.findIndex((album) =>
+      album.tracks.some((track) => track.id === currentTrackId),
+    );
+    return index >= 0 ? index : null;
+  }, [albums, currentTrackId]);
 
-  const [active, setActive] = useState(startIndex);
+  const [active, setActive] = useState(restoredIndex ?? startIndex);
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [cardSize, setCardSize] = useState(320);
@@ -48,8 +59,10 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
   const [titleH, setTitleH] = useState(0);
   const [viewportW, setViewportW] = useState(1200);
 
-  const [phase, setPhase] = useState<Phase>('idle');
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  // 恢复态直接是 open：不跑翻开动画、不调 cueTrack / pause，
+  // 否则会把正在播的歌打断或跳回第一首
+  const [phase, setPhase] = useState<Phase>(restoredIndex !== null ? 'open' : 'idle');
+  const [openIndex, setOpenIndex] = useState<number | null>(restoredIndex);
   /** 左滑收起时整页跟手的位移 */
   const [pageDx, setPageDx] = useState(0);
 
@@ -120,6 +133,20 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
     },
     [],
   );
+
+  /**
+   * 恢复态把播放队列对齐到这张专辑的曲目，但**只换队列、不碰 audio**。
+   * 单曲页的队列是「所有单曲」，不换的话在唱机上拖唱片换曲会跳到别的单曲，
+   * 而唱机面板显示的是专辑曲目，两者就对不上了。
+   */
+  const restoredQueue = useRef(false);
+  useEffect(() => {
+    if (restoredQueue.current) return;
+    restoredQueue.current = true;
+    if (restoredIndex === null) return;
+    const tracks = albums[restoredIndex]?.tracks;
+    if (tracks?.length) replaceQueue(tracks);
+  }, [restoredIndex, albums, replaceQueue]);
 
   /* ---------- 打开 / 收起 ---------- */
   const openAlbum = useCallback(

@@ -31,6 +31,8 @@ type PlayerActions = {
   playTrack: (track: Track, queue?: Track[]) => void;
   /** 只载入、不出声：翻开专辑时唱机停在待播放状态 */
   cueTrack: (track: Track, queue?: Track[]) => void;
+  /** 只替换队列、不碰音频：从单曲页回到首页时把队列对齐到专辑曲目 */
+  replaceQueue: (tracks: Track[]) => void;
   toggle: () => void;
   pause: () => void;
   next: () => void;
@@ -47,6 +49,12 @@ type PlayerActions = {
 
 const PlayerStateContext = createContext<PlayerState | null>(null);
 const PlayerActionsContext = createContext<PlayerActions | null>(null);
+/**
+ * 只放当前曲目 id：换曲时才通知订阅者。
+ * 首页 CoverFlow 用它决定"回来时该打开哪张专辑"，不能订阅整个 state——
+ * 那会跟着 timeupdate 每秒重渲染四次整个 3D 舞台。
+ */
+const CurrentTrackIdContext = createContext<string | null>(null);
 
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -237,6 +245,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     [startTrack],
   );
 
+  /** 只替换队列、不碰 audio：当前曲目、播放状态、进度全部原样保留 */
+  const replaceQueue = useCallback((tracks: Track[]) => {
+    setQueue(tracks);
+    queueRef.current = tracks;
+  }, []);
+
   const toggle = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -364,6 +378,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     () => ({
       playTrack,
       cueTrack,
+      replaceQueue,
       toggle,
       pause,
       next,
@@ -380,6 +395,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     [
       playTrack,
       cueTrack,
+      replaceQueue,
       toggle,
       pause,
       next,
@@ -396,11 +412,13 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <PlayerStateContext.Provider value={state}>
-      <PlayerActionsContext.Provider value={actions}>
-        {children}
-      </PlayerActionsContext.Provider>
-    </PlayerStateContext.Provider>
+    <CurrentTrackIdContext.Provider value={current?.id ?? null}>
+      <PlayerStateContext.Provider value={state}>
+        <PlayerActionsContext.Provider value={actions}>
+          {children}
+        </PlayerActionsContext.Provider>
+      </PlayerStateContext.Provider>
+    </CurrentTrackIdContext.Provider>
   );
 }
 
@@ -414,6 +432,11 @@ export function usePlayerActions(): PlayerActions {
   const value = useContext(PlayerActionsContext);
   if (!value) throw new Error('usePlayerActions 必须在 PlayerProvider 内使用');
   return value;
+}
+
+/** 只订阅当前曲目 id；换曲才重渲染，不跟着 timeupdate 走 */
+export function useCurrentTrackId(): string | null {
+  return useContext(CurrentTrackIdContext);
 }
 
 export function formatTime(totalSeconds: number): string {
