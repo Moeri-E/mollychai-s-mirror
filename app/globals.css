@@ -638,9 +638,12 @@ input[type='range'].range-thin::-moz-range-thumb {
   z-index: 2;
 }
 
-/* 中心标签是封面图时，封面本身不对称、转动能看出来，这个暗点就多余了；
-   纯色标签（无封面图的专辑）才需要它辅助看出转动 */
-.sleeve-vinyl:has(.sleeve-label)::before {
+/* 中心标签是封面图时，封面是一张完整的 artwork，上面不该有印刷暗点
+   或转轴孔——尤其浅色封面，一个小黑洞会非常违和。
+   封面本身不对称、转动能看出来，暗点也不再需要。
+   纯色标签（无封面图的专辑）才保留这两处物理细节。 */
+.sleeve-vinyl:has(.sleeve-label)::before,
+.sleeve-vinyl:has(.sleeve-label)::after {
   display: none;
 }
 
