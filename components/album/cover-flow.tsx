@@ -454,7 +454,10 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
                   style={
                     isOpen
                       ? {
-                          transform: 'rotateY(-174deg) translateZ(-26px)',
+                          // -180° 完全翻平 + 与内胆同深度：封皮投影宽与唱机面板严格一致。
+                          // 之前用 -174° + translateZ(-26px)，封皮比内胆浅、透视放得更大，
+                          // 摊开后封面左端比书脊对称位多出一截，看起来像轴偏了
+                          transform: 'rotateY(-180deg) translateZ(-2px)',
                           // 翻转延迟 480ms：先等卡片滑到打开位（640ms 移动动画的后段），
                           // 再绕左轴翻——否则卡片边右移边翻，轴跟着跑，
                           // 看起来像是绕"封面左侧靠右"的一条轴在转，很突兀
