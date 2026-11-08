@@ -12,6 +12,8 @@ import type { AlbumWithTracks } from '@/lib/catalog';
 
 type Props = {
   album: AlbumWithTracks;
+  /** 在唱机非唱片区域明显左滑时收起专辑（保留"翻盖后向左划走"） */
+  onSwipeAway?: () => void;
 };
 
 /** 黑胶飞出 / 飞入的方向，用类名驱动，避免和拖拽的 transform 打架 */
@@ -25,12 +27,13 @@ type Anim = 'idle' | 'out-left' | 'out-right' | 'in-left' | 'in-right';
  *   .sleeve-arm      唱臂，抬起 / 落下只切 data-playing
  *   .sleeve-deck     机身面板：曲序、状态、曲名、进度
  *
- * 交互：
- *   拖唱片  → 换曲（超过 46px）；位移小于 8px 且落点在唱片圆内 → 播放/暂停
- *   点唱臂  → 播放/暂停
- *   点进度条 → 定位
+ * 交互（整个内胆只有一套手势源，cover flow 不参与）：
+ *   唱片圆内    点 → 播放/暂停；横拖 >46px → 同专辑内换曲
+ *   圆外区域    左滑 >70px → 收起专辑；其余不响应
+ *   点唱臂      → 播放/暂停
+ *   点进度条    → 定位
  */
-export function AlbumDeck({ album }: Props) {
+export function AlbumDeck({ album, onSwipeAway }: Props) {
   const { current, playing, currentTime, duration } = usePlayerState();
   const { toggle, next, prev, seek } = usePlayerActions();
 
@@ -38,6 +41,8 @@ export function AlbumDeck({ album }: Props) {
   const switching = useRef(false);
   const pointer = useRef<{ x: number; y: number; t: number; moved: number } | null>(null);
   const dragDx = useRef(0);
+  /** 按下时是否落在唱片圆内：决定这次手势是换曲/播放还是收起 */
+  const startInVinyl = useRef(false);
   const vinylRef = useRef<HTMLSpanElement | null>(null);
   const barRef = useRef<HTMLSpanElement | null>(null);
 
@@ -80,59 +85,65 @@ export function AlbumDeck({ album }: Props) {
     };
   }, []);
 
-  /* ---------- 唱片：拖 = 换曲，点 = 暂停 ----------
-   * 用 setPointerCapture 锁定指针：拖动过程中即便指针滑出唱片圆，
-   * pointermove/up 仍派发给 platter，不会半路丢失造成"拖到一半卡住"。
-   * stopPropagation 保证不冒泡到 cover flow 的"左滑收起"手势——
-   * 后者靠 stage 的 onPointerDown 设置 pageDrag，这里一挡，pageDrag
-   * 就不会被置位，cover flow 的 window 级 move/up 全部提前 return。 */
-  const onPlatterDown = (event: React.PointerEvent) => {
+  /* ---------- 内胆手势：点/拖唱片、左滑收起 ----------
+   * 手势挂在 .sleeve-interior 上而不是 .sleeve-platter：移动端 platter 与
+   * 机身面板的矩形有重叠，落在重叠区/面板上的触摸若不被本组件接管，
+   * 就会冒泡到 cover flow 的翻页/收起逻辑，出现"滑黑胶却切了卡片"。
+   * setPointerCapture 锁定指针，拖出内胆也不丢 move/up；stopPropagation
+   * 保证 cover flow 的 pageDrag 不被置位。 */
+  const inVinylAt = (x: number, y: number) => {
+    const rect = vinylRef.current?.getBoundingClientRect();
+    if (!rect) return false;
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    return Math.hypot(x - cx, y - cy) <= rect.width / 2 + 2;
+  };
+
+  const onInteriorDown = (event: React.PointerEvent) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.stopPropagation();
     (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
     pointer.current = { x: event.clientX, y: event.clientY, t: Date.now(), moved: 0 };
+    startInVinyl.current = inVinylAt(event.clientX, event.clientY);
     dragDx.current = 0;
   };
 
-  const onPlatterMove = (event: React.PointerEvent) => {
+  const onInteriorMove = (event: React.PointerEvent) => {
     const state = pointer.current;
     if (!state) return;
     dragDx.current = event.clientX - state.x;
     state.moved = Math.max(state.moved, Math.abs(dragDx.current));
     const wrap = vinylRef.current;
-    if (wrap && state.moved > 6) {
+    if (wrap && startInVinyl.current && state.moved > 6) {
       wrap.style.transform = `translateX(${dragDx.current * 0.32}px) rotate(${dragDx.current * 0.012}deg)`;
     }
   };
 
-  const onPlatterUp = (event: React.PointerEvent) => {
+  const onInteriorUp = () => {
     const state = pointer.current;
     if (!state) return;
     const wrap = vinylRef.current;
     const dx = dragDx.current;
     const moved = state.moved;
     const held = Date.now() - state.t;
-    const rect = wrap?.getBoundingClientRect();
+    const inVinyl = startInVinyl.current;
     pointer.current = null;
     dragDx.current = 0;
     if (wrap) wrap.style.transform = '';
 
-    // ① 明显横拖 → 换曲
+    // ① 明显横拖：唱片圆内 → 同专辑换曲；圆外左滑 → 收起专辑
     if (Math.abs(dx) > 46) {
-      switchTrack(dx < 0 ? 1 : -1);
+      if (inVinyl && tracks.length > 1) switchTrack(dx < 0 ? 1 : -1);
+      else if (dx < -70) onSwipeAway?.();
       return;
     }
 
-    // ② 位移极小 → 算点击；只有落在唱片圆内才切播放状态
-    if (!(moved < 8 && held < 600) || !rect || !track) return;
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const inside =
-      Math.hypot(event.clientX - centerX, event.clientY - centerY) <= rect.width / 2 + 2;
-    if (inside) toggle();
+    // ② 位移极小 → 算点击；只有起点落在唱片圆内才切播放状态
+    if (!(moved < 8 && held < 600) || !inVinyl || !track) return;
+    toggle();
   };
 
-  const onPlatterCancel = () => {
+  const onInteriorCancel = () => {
     pointer.current = null;
     dragDx.current = 0;
     if (vinylRef.current) vinylRef.current.style.transform = '';
@@ -162,17 +173,14 @@ export function AlbumDeck({ album }: Props) {
     <span
       className="sleeve-interior"
       data-playing={playing && track ? '1' : '0'}
+      data-no-dismiss
       style={{ ['--accent' as string]: accent }}
+      onPointerDown={onInteriorDown}
+      onPointerMove={onInteriorMove}
+      onPointerUp={onInteriorUp}
+      onPointerCancel={onInteriorCancel}
     >
-      <span
-        className="sleeve-platter"
-        data-no-dismiss
-        onPointerDown={onPlatterDown}
-        onPointerMove={onPlatterMove}
-        onPointerUp={onPlatterUp}
-        onPointerCancel={onPlatterCancel}
-        role="presentation"
-      >
+      <span className="sleeve-platter" data-no-dismiss role="presentation">
           <span className={`sleeve-vinyl-wrap is-${anim}`} ref={vinylRef}>
             <span className="sleeve-vinyl">
               {album.coverUrl && (

@@ -474,7 +474,7 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
               aria-expanded={isOpenedCard ? true : undefined}
             >
               <span className="sleeve">
-                {showDeck && <AlbumDeck album={album} />}
+                {showDeck && <AlbumDeck album={album} onSwipeAway={closeAlbum} />}
 
                 <span
                   className="sleeve-flap"

@@ -497,6 +497,10 @@ input[type='range'].range-thin::-moz-range-thumb {
   display: block;
   border-radius: 4px;
   overflow: hidden;
+  /* 首页一屏不滚动，唱机区域也不需要浏览器原生手势：
+     彻底交给 JS 的 pointer 事件，避免移动端横滑被浏览器吞掉或触发
+     pointercancel（那样会退化成 cover flow 的翻页/收起） */
+  touch-action: none;
   transform: translateZ(-2px);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.055) 0%, rgba(255, 255, 255, 0) 38%),
