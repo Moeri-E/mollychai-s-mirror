@@ -455,7 +455,10 @@ export function CoverFlow({ albums, initialIndex, title }: Props) {
                     isOpen
                       ? {
                           transform: 'rotateY(-174deg) translateZ(-26px)',
-                          transition: 'transform 1.3s cubic-bezier(0.3, 0.6, 0.3, 1) 160ms',
+                          // 翻转延迟 480ms：先等卡片滑到打开位（640ms 移动动画的后段），
+                          // 再绕左轴翻——否则卡片边右移边翻，轴跟着跑，
+                          // 看起来像是绕"封面左侧靠右"的一条轴在转，很突兀
+                          transition: 'transform 1.05s cubic-bezier(0.3, 0.85, 0.2, 1) 480ms',
                         }
                       : {
                           transform: 'rotateY(0deg)',
