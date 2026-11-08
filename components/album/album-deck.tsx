@@ -86,11 +86,13 @@ export function AlbumDeck({ album, onSwipeAway }: Props) {
   }, []);
 
   /* ---------- 内胆手势：点/拖唱片、左滑收起 ----------
-   * 手势挂在 .sleeve-interior 上而不是 .sleeve-platter：移动端 platter 与
-   * 机身面板的矩形有重叠，落在重叠区/面板上的触摸若不被本组件接管，
-   * 就会冒泡到 cover flow 的翻页/收起逻辑，出现"滑黑胶却切了卡片"。
-   * setPointerCapture 锁定指针，拖出内胆也不丢 move/up；stopPropagation
-   * 保证 cover flow 的 pageDrag 不被置位。 */
+   * 真机（尤其 iOS Safari）在 preserve-3d + translateZ 的元素上，pointer
+   * 事件不保证派发，setPointerCapture 对 touch 更不可靠。这里不依赖元素命中：
+   *   - 起点：React onPointerDown 优先，window touchstart 兜底
+   *   - 过程/结束：一律挂 window 原生监听，拖出唱机也不丢
+   *   - 全部按坐标判定（起点是否落在唱片圆内），与 target 元素无关
+   * interior 带 data-no-dismiss + touch-action:none，cover flow 不参与。
+   */
   const inVinylAt = (x: number, y: number) => {
     const rect = vinylRef.current?.getBoundingClientRect();
     if (!rect) return false;
@@ -99,54 +101,107 @@ export function AlbumDeck({ album, onSwipeAway }: Props) {
     return Math.hypot(x - cx, y - cy) <= rect.width / 2 + 2;
   };
 
+  const beginGesture = (x: number, y: number) => {
+    pointer.current = { x, y, t: Date.now(), moved: 0 };
+    startInVinyl.current = inVinylAt(x, y);
+    dragDx.current = 0;
+  };
+
+  // window 监听只挂载一次，用 ref 读最新的回调与曲目数据
+  const gestureCtx = useRef({
+    toggle,
+    switchTrack,
+    onSwipeAway,
+    hasTrack: !!track,
+    trackCount: tracks.length,
+  });
+  gestureCtx.current = {
+    toggle,
+    switchTrack,
+    onSwipeAway,
+    hasTrack: !!track,
+    trackCount: tracks.length,
+  };
+
+  useEffect(() => {
+    const moveGesture = (x: number) => {
+      const state = pointer.current;
+      if (!state) return;
+      dragDx.current = x - state.x;
+      state.moved = Math.max(state.moved, Math.abs(dragDx.current));
+      const wrap = vinylRef.current;
+      if (wrap && startInVinyl.current && state.moved > 6) {
+        wrap.style.transform = `translateX(${dragDx.current * 0.32}px) rotate(${dragDx.current * 0.012}deg)`;
+      }
+    };
+
+    const clearGesture = () => {
+      pointer.current = null;
+      dragDx.current = 0;
+      if (vinylRef.current) vinylRef.current.style.transform = '';
+    };
+
+    const endGesture = () => {
+      const state = pointer.current;
+      if (!state) return;
+      const dx = dragDx.current;
+      const moved = state.moved;
+      const held = Date.now() - state.t;
+      const inVinyl = startInVinyl.current;
+      clearGesture();
+      const ctx = gestureCtx.current;
+
+      // ① 明显横拖：唱片圆内 → 同专辑换曲；圆外左滑 → 收起专辑
+      if (Math.abs(dx) > 46) {
+        if (inVinyl && ctx.trackCount > 1) ctx.switchTrack(dx < 0 ? 1 : -1);
+        else if (dx < -70) ctx.onSwipeAway?.();
+        return;
+      }
+
+      // ② 位移极小 → 算点击；只有起点落在唱片圆内才切播放状态
+      if (!(moved < 8 && held < 600) || !inVinyl || !ctx.hasTrack) return;
+      ctx.toggle();
+    };
+
+    const onPointerMove = (e: PointerEvent) => moveGesture(e.clientX);
+    const onTouchStart = (e: TouchEvent) => {
+      // pointerdown 已经接过就别重复起手势
+      if (pointer.current) return;
+      const t = e.touches[0];
+      if (t) beginGesture(t.clientX, t.clientY);
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!pointer.current) return;
+      const t = e.touches[0];
+      if (t) moveGesture(t.clientX);
+      // 只有真的滑动起来才拦浏览器手势；纯点击（手指微抖）不能拦，
+      // 否则 iOS 不会补发 click，唱臂按钮和进度条就点不动了
+      if (e.cancelable && pointer.current && pointer.current.moved > 6) e.preventDefault();
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', endGesture);
+    window.addEventListener('pointercancel', clearGesture);
+    window.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', endGesture);
+    window.addEventListener('touchcancel', clearGesture);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', endGesture);
+      window.removeEventListener('pointercancel', clearGesture);
+      window.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', endGesture);
+      window.removeEventListener('touchcancel', clearGesture);
+    };
+  }, []);
+
+  /** 只负责起手势 + 拦住冒泡；后续 move/up 走 window 原生监听 */
   const onInteriorDown = (event: React.PointerEvent) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.stopPropagation();
-    (event.currentTarget as HTMLElement).setPointerCapture?.(event.pointerId);
-    pointer.current = { x: event.clientX, y: event.clientY, t: Date.now(), moved: 0 };
-    startInVinyl.current = inVinylAt(event.clientX, event.clientY);
-    dragDx.current = 0;
-  };
-
-  const onInteriorMove = (event: React.PointerEvent) => {
-    const state = pointer.current;
-    if (!state) return;
-    dragDx.current = event.clientX - state.x;
-    state.moved = Math.max(state.moved, Math.abs(dragDx.current));
-    const wrap = vinylRef.current;
-    if (wrap && startInVinyl.current && state.moved > 6) {
-      wrap.style.transform = `translateX(${dragDx.current * 0.32}px) rotate(${dragDx.current * 0.012}deg)`;
-    }
-  };
-
-  const onInteriorUp = () => {
-    const state = pointer.current;
-    if (!state) return;
-    const wrap = vinylRef.current;
-    const dx = dragDx.current;
-    const moved = state.moved;
-    const held = Date.now() - state.t;
-    const inVinyl = startInVinyl.current;
-    pointer.current = null;
-    dragDx.current = 0;
-    if (wrap) wrap.style.transform = '';
-
-    // ① 明显横拖：唱片圆内 → 同专辑换曲；圆外左滑 → 收起专辑
-    if (Math.abs(dx) > 46) {
-      if (inVinyl && tracks.length > 1) switchTrack(dx < 0 ? 1 : -1);
-      else if (dx < -70) onSwipeAway?.();
-      return;
-    }
-
-    // ② 位移极小 → 算点击；只有起点落在唱片圆内才切播放状态
-    if (!(moved < 8 && held < 600) || !inVinyl || !track) return;
-    toggle();
-  };
-
-  const onInteriorCancel = () => {
-    pointer.current = null;
-    dragDx.current = 0;
-    if (vinylRef.current) vinylRef.current.style.transform = '';
+    beginGesture(event.clientX, event.clientY);
   };
 
   const onSeek = (event: React.PointerEvent) => {
@@ -176,9 +231,6 @@ export function AlbumDeck({ album, onSwipeAway }: Props) {
       data-no-dismiss
       style={{ ['--accent' as string]: accent }}
       onPointerDown={onInteriorDown}
-      onPointerMove={onInteriorMove}
-      onPointerUp={onInteriorUp}
-      onPointerCancel={onInteriorCancel}
     >
       <span className="sleeve-platter" data-no-dismiss role="presentation">
           <span className={`sleeve-vinyl-wrap is-${anim}`} ref={vinylRef}>
